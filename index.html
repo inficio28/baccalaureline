@@ -49,7 +49,7 @@
         .error-box { background:#fdecea; border:1px solid #e74c3c; color:#c0392b; border-radius:10px; padding:12px; margin:10px 0; font-size:0.88rem; text-align:left; word-break:break-word; }
         .info-box   { background:#eaf4fb; border:1px solid #3498db; color:#1a6a96; border-radius:10px; padding:10px 14px; margin:10px 0; font-size:0.85rem; }
 
-        /* ── TABLEAU DES RÉSULTATS ── */
+        /* ── TABLEAU RÉSULTATS ── */
         .result-header { display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:16px; }
         .result-letter { font-size:3.5rem; font-weight:900; color:var(--primary); line-height:1; }
         .result-title  { font-size:1.4rem; font-weight:bold; color:var(--dark); }
@@ -58,9 +58,11 @@
         .podium-card.first  { border-color:#f1c40f; background:#fffde7; }
         .podium-card.second { border-color:#bdc3c7; background:#f9f9f9; }
         .podium-card.third  { border-color:#e67e22; background:#fff5ec; }
+        .podium-card.podium-final { border-color:var(--success) !important; background:#eafaf1 !important; }
         .podium-rank  { font-size:1.4rem; }
         .podium-name  { font-weight:bold; font-size:0.95rem; color:var(--dark); margin:2px 0; }
         .podium-score { font-size:1.1rem; font-weight:900; color:var(--primary); }
+        .podium-total { font-size:0.8rem; color:#27ae60; font-weight:bold; margin-top:2px; }
 
         .results-table { width:100%; border-collapse:collapse; font-size:0.88rem; margin-top:4px; }
         .results-table th { background:var(--dark); color:white; padding:8px 6px; text-align:left; font-weight:600; }
@@ -74,8 +76,10 @@
         .word-invalid { color:#bbb; font-style:italic; }
         .word-empty   { color:#ddd; }
         .score-badge  { display:inline-block; background:var(--primary); color:white; border-radius:10px; padding:2px 8px; font-weight:bold; font-size:0.85rem; }
+        .total-row td { background:#e8f4fd !important; font-weight:900; }
+        .total-badge  { display:inline-block; background:var(--dark); color:white; border-radius:10px; padding:2px 8px; font-weight:bold; font-size:0.85rem; }
 
-        /* attente résultats */
+        /* attente */
         .waiting-results { padding:20px; }
         .waiting-results .big-emoji { font-size:4rem; animation:pulse 1s infinite; }
         @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
@@ -90,14 +94,30 @@
         .word-cell.annule .word-text { text-decoration:line-through; color:#e74c3c !important; font-weight:bold; }
         .contest-icon { font-size:0.75rem; margin-left:3px; vertical-align:middle; }
         .contest-phase-banner { background:#fff3cd; border:1px solid #ffc107; border-radius:10px; padding:10px 14px; margin:10px 0; font-size:0.88rem; color:#856404; }
-        .contest-timer { font-weight:bold; font-size:1rem; }
+        .waiting-contest { background:#f8f9fa; border-radius:10px; padding:8px 12px; margin:8px 0; font-size:0.85rem; color:#666; }
+
+        /* vote 2 joueurs */
+        .vote-banner { background:#fdecea; border:1px solid #e74c3c; border-radius:10px; padding:12px 14px; margin:10px 0; font-size:0.88rem; color:#c0392b; }
+        .vote-item { display:flex; align-items:center; justify-content:space-between; background:white; border:1px solid #eee; border-radius:8px; padding:7px 10px; margin:6px 0; }
+        .vote-item .vote-label { font-size:0.85rem; color:var(--dark); }
+        .vote-item .vote-word  { font-weight:bold; }
+        .vote-actions { display:flex; gap:6px; }
+        .btn-vote { border:none; border-radius:6px; padding:4px 12px; cursor:pointer; font-weight:bold; font-size:0.82rem; transition:0.15s; }
+        .btn-vote-ok  { background:#e8f8f0; color:#27ae60; border:1.5px solid #27ae60; }
+        .btn-vote-non { background:#fdecea; color:#e74c3c; border:1.5px solid #e74c3c; }
+        .btn-vote.selected { opacity:1; transform:scale(1.08); }
+        .btn-vote:not(.selected) { opacity:0.5; }
+
+        /* boutons fin */
+        .end-btns { display:flex; gap:10px; margin-top:14px; }
+        .end-btns .btn { margin-bottom:0; flex:1; }
+
+        /* time picker */
         .time-picker { display:flex; align-items:center; justify-content:center; gap:12px; background:#f8f9fa; border-radius:12px; padding:12px 16px; margin:10px 0; }
         .time-picker label { font-weight:bold; color:var(--dark); font-size:0.95rem; }
         .time-btn { width:34px; height:34px; border:2px solid var(--primary); border-radius:8px; background:white; color:var(--primary); font-size:1.2rem; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.2s; padding:0; }
         .time-btn:hover { background:var(--primary); color:white; }
         .time-display { font-size:1.5rem; font-weight:900; color:var(--primary); min-width:50px; text-align:center; }
-        .waiting-contest { background:#f8f9fa; border-radius:10px; padding:8px 12px; margin:8px 0; font-size:0.85rem; color:#666; }
-        .podium-final { border-color:var(--success) !important; background:#eafaf1 !important; }
     </style>
 </head>
 <body>
@@ -142,13 +162,13 @@
     <!-- SALLE ATTENTE HÔTE -->
     <div id="host-waiting" class="hidden">
         <h3>🎮 Salle : <span id="host-room-name" style="color:var(--primary)"></span></h3>
-        <div class="info-box">Partage le nom de ta salle avec tes amis !</div>
+        <div class="info-box" id="host-info-box">Partage le nom de ta salle avec tes amis !</div>
         <div class="waiting-room">
             <h4>👥 Joueurs connectés</h4>
             <div id="host-players-list" class="players-list"></div>
         </div>
         <button id="host-launch-btn" onclick="lancerTopDepart()" class="btn btn-success" disabled>⏳ En attente de joueurs...</button>
-        <button onclick="annulerSalle()" class="btn btn-danger">✖ ANNULER LA SALLE</button>
+        <button id="host-cancel-btn" onclick="annulerSalle()" class="btn btn-danger">✖ ANNULER LA SALLE</button>
     </div>
 
     <!-- SALLE ATTENTE GUEST -->
@@ -167,7 +187,7 @@
         <div id="letter">-</div>
         <div id="timer">--:--</div>
         <div id="game-fields"></div>
-        <button onclick="stopPartie()" class="btn btn-danger" style="margin-top:18px">🛑 STOP !</button>
+        <button onclick="stopPartie(true)" class="btn btn-danger" style="margin-top:18px">🛑 STOP !</button>
     </div>
 
     <!-- ATTENTE DES RÉSULTATS (multi) -->
@@ -183,18 +203,26 @@
     <div id="result" class="hidden">
         <div class="result-header">
             <div class="result-letter" id="result-letter">-</div>
-            <div class="result-title" id="result-title">Résultats de la partie</div>
+            <div class="result-title" id="result-title">Résultats</div>
         </div>
         <div id="contest-banner" class="contest-phase-banner hidden"></div>
         <div id="scores-podium" class="scores-podium"></div>
         <div style="overflow-x:auto">
             <table class="results-table" id="results-table"></table>
         </div>
+        <!-- Bouton valider ses propres contestations -->
         <div id="contest-actions" class="hidden" style="margin-top:12px">
             <button onclick="validerContestations()" class="btn btn-success">✅ Valider mes contestations</button>
         </div>
+        <!-- Vote adversaire (cas 2 joueurs) -->
+        <div id="vote-banner" class="vote-banner hidden"></div>
+        <!-- Attente -->
         <div id="waiting-contest-div" class="waiting-contest hidden"></div>
-        <button id="btn-retour" onclick="location.reload()" class="btn btn-solo hidden" style="margin-top:18px">🔄 RETOUR AU MENU</button>
+        <!-- Boutons fin de partie -->
+        <div id="end-btns" class="end-btns hidden">
+            <button onclick="rejouer()" class="btn btn-success">🔄 REJOUER</button>
+            <button onclick="location.reload()" class="btn btn-grey">🚪 QUITTER</button>
+        </div>
     </div>
 </div>
 
@@ -206,7 +234,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ── Helpers DB ────────────────────────────────────────────────────────────────
 async function dbSelect(table, filters) {
     let q = _supabase.from(table).select(filters.select || '*');
-    if(filters.statut) q = q.eq('statut', filters.statut.replace('eq.',''));
+    if(filters.statut)     q = q.eq('statut', filters.statut.replace('eq.',''));
     if(filters.nom_partie) q = q.eq('nom_partie', filters.nom_partie.replace('eq.',''));
     if(filters.created_at) {
         if(filters.created_at.startsWith('gte.')) q = q.gte('created_at', filters.created_at.slice(4));
@@ -220,13 +248,11 @@ async function dbSelect(table, filters) {
     if(error) throw new Error(error.message);
     return data;
 }
-
 async function dbInsert(table, body) {
     const { data, error } = await _supabase.from(table).insert([body]).select();
     if(error) throw new Error(error.message);
     return data;
 }
-
 async function dbUpdate(table, filters, body) {
     let q = _supabase.from(table).update(body);
     Object.entries(filters).forEach(([k, v]) => q = q.eq(k, String(v).replace('eq.','')));
@@ -234,22 +260,21 @@ async function dbUpdate(table, filters, body) {
     if(error) throw new Error(error.message);
     return true;
 }
-
 async function dbDelete(table, filters) {
     let q = _supabase.from(table).delete();
     Object.entries(filters).forEach(([k, v]) => {
         const val = String(v);
-        if(val.startsWith('eq.'))  q = q.eq(k, val.slice(3));
+        if(val.startsWith('eq.'))       q = q.eq(k, val.slice(3));
         else if(val.startsWith('lt.'))  q = q.lt(k, val.slice(3));
         else if(val.startsWith('gte.')) q = q.gte(k, val.slice(4));
-        else q = q.eq(k, val);
+        else                            q = q.eq(k, val);
     });
     const { error } = await q;
     if(error) throw new Error(error.message);
     return true;
 }
 
-// ── Persistance pseudo ───────────────────────────────────────────────────────
+// ── Persistance pseudo ────────────────────────────────────────────────────────
 function sauverPseudo() {
     const v = document.getElementById('pseudo').value.trim();
     if(v) localStorage.setItem('baccalaureline_pseudo', v);
@@ -261,22 +286,27 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // ── État global ───────────────────────────────────────────────────────────────
 let mode = "", room = "", channel = null;
-let cats = [], letter = "", timerInterval, timeLeft = 180;
-let dureeMinutes = 3; // durée choisie par l'hôte/solo
+let cats = [], letter = "", timerInterval, timeLeft = 0;
+let dureeMinutes = 3;
 let pseudo = "", joueurs = [];
-// Résultats collectés en multi (indexed by pseudo)
 let resultatsJoueurs = {};
 let nbJoueursPartie = 0;
 let partieTerminee = false;
+
 // Contestation
-let contestPhase = false;          // phase de contestation active
-let mesContestations = new Set();  // clés "pseudoCible|catIdx" contestées par moi
-let contestationsReçues = {};      // { pseudo: Set{clés} } de chaque joueur
+let contestPhase = false;
+let mesContestations = new Set();
+let contestationsRecues = {};
 let nbJoueursContestants = 0;
-let contestChannel = null;
-let resultatsFinaux = [];          // copie des résultats pour recalcul
+let resultatsFinaux = [];
 let catsFinales = [];
 let lettreFinale = "";
+// Votes 2 joueurs : { key: true/false } true = j'accepte l'annulation
+let mesVotes2J = {};
+
+// Scores cumulés sur plusieurs manches
+let scoresCumules = {};   // { pseudo: totalPoints }
+let mancheNum = 1;
 
 // Fond animé
 const bg = document.getElementById('bg-letters');
@@ -284,28 +314,26 @@ for(let i=0;i<40;i++){
     const s=document.createElement('div'); s.className='floating-letter';
     s.innerText="ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random()*26)];
     s.style.left=Math.random()*100+"%"; s.style.top=Math.random()*100+"%";
-    s.style.fontSize=Math.random()*30+20+"px"; s.style.animationDuration=Math.random()*6+4+"s";
+    s.style.fontSize=Math.random()*30+20+"px";
+    s.style.animationDuration=Math.random()*6+4+"s";
     bg.appendChild(s);
 }
 
-// ── UI ────────────────────────────────────────────────────────────────────────
+// ── UI helpers ────────────────────────────────────────────────────────────────
 function show(id) {
     ['home','lobby','setup','host-waiting','guest-waiting','game','waiting-results','result']
         .forEach(d => document.getElementById(d).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
 }
-
-function showError(containerId, msg) {
-    const el = document.getElementById(containerId);
+function showError(cid, msg) {
+    const el = document.getElementById(cid);
     el.querySelectorAll('.error-box').forEach(e => e.remove());
     const box = document.createElement('div');
     box.className = 'error-box';
     box.innerHTML = '⚠️ ' + msg;
     el.prepend(box);
 }
-
 function retourAccueil() { location.reload(); }
-
 function checkPseudo() {
     pseudo = document.getElementById('pseudo').value.trim();
     if(!pseudo) { alert("Mets un pseudo !"); return false; }
@@ -321,17 +349,15 @@ function ouvrirSolo() {
     document.getElementById('start-btn').textContent = "🎯 LANCER LA PARTIE";
     show('setup'); genererCats();
 }
-
 function ouvrirCreateMulti() {
     if(!checkPseudo()) return;
     mode = "host";
     document.getElementById('setup-title').innerText = "Créer une salle";
     document.getElementById('room-name-input').classList.remove('hidden');
-    document.getElementById('room-name-input').value = `Room de ${pseudo}`;
+    document.getElementById('room-name-input').value = "Room de " + pseudo;
     document.getElementById('start-btn').textContent = "CRÉER LA SALLE";
     show('setup'); genererCats();
 }
-
 async function ouvrirLobby() {
     if(!checkPseudo()) return;
     show('lobby');
@@ -341,40 +367,34 @@ async function ouvrirLobby() {
 // ── Lobby ─────────────────────────────────────────────────────────────────────
 async function chargerLobby() {
     const list = document.getElementById('room-list');
-    list.innerHTML = "<p style='padding:12px'>🔍 Recherche de parties...</p>";
+    list.innerHTML = "<p style='padding:12px'>🔍 Recherche...</p>";
     const limite3h = new Date(Date.now() - 3*60*60*1000).toISOString();
     try {
-        // Supprimer les vieilles salles et les salles terminées
-        await dbDelete('partie_multi', { statut: 'eq.attente',   created_at: `lt.${limite3h}` });
-        await dbDelete('partie_multi', { statut: 'eq.terminee',  created_at: `lt.${limite3h}` });
-
+        await dbDelete('partie_multi', { statut:'eq.attente',  created_at:'lt.'+limite3h });
+        await dbDelete('partie_multi', { statut:'eq.terminee', created_at:'lt.'+limite3h });
         const data = await dbSelect('partie_multi', {
-            select: 'nom_partie,pseudo,created_at',
-            statut: 'eq.attente',
-            created_at: `gte.${limite3h}`,
-            order: 'created_at.desc'
+            select:'nom_partie,pseudo,created_at', statut:'eq.attente',
+            created_at:'gte.'+limite3h, order:'created_at.desc'
         });
-
         list.innerHTML = "";
-        if(!data || data.length === 0) {
+        if(!data || !data.length) {
             list.innerHTML = "<p style='padding:15px;color:#888'>Aucune salle disponible.</p>";
             return;
         }
         const seen = new Map();
         data.forEach(d => { if(!seen.has(d.nom_partie)) seen.set(d.nom_partie, d); });
         seen.forEach((row, nom) => {
-            const date = new Date(row.created_at);
-            const dateStr  = date.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
-            const heureStr = date.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-            list.innerHTML += `
-                <div class="room-item">
-                    <div style="text-align:left">
-                        <div>Salle <b>${nom}</b> — par <b>${row.pseudo}</b></div>
-                        <div style="font-size:0.75rem;color:#888;margin-top:3px">🕐 ${dateStr} à ${heureStr}</div>
-                    </div>
-                    <button class="btn btn-success" onclick="rejoindreSalle('${nom}','${row.pseudo}')"
-                        style="width:auto;padding:6px 14px;flex-shrink:0;margin-bottom:0">Rejoindre</button>
-                </div>`;
+            const d = new Date(row.created_at);
+            const ds = d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+            const hs = d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+            list.innerHTML += `<div class="room-item">
+                <div style="text-align:left">
+                    <div>Salle <b>${nom}</b> — par <b>${row.pseudo}</b></div>
+                    <div style="font-size:0.75rem;color:#888;margin-top:3px">🕐 ${ds} à ${hs}</div>
+                </div>
+                <button class="btn btn-success" onclick="rejoindreSalle('${nom}','${row.pseudo}')"
+                    style="width:auto;padding:6px 14px;flex-shrink:0;margin-bottom:0">Rejoindre</button>
+            </div>`;
         });
     } catch(err) {
         list.innerHTML = `<div class="error-box" style="margin:10px">⚠️ ${err.message}</div>`;
@@ -384,7 +404,9 @@ async function chargerLobby() {
 // ── Catégories ────────────────────────────────────────────────────────────────
 function genererCats() {
     cats = [];
-    const cList = ["Animal","Ville","Prénom","Métier","Pays","Fruit","Objet","Sport","Marque","Couleur","Célébrité","Film","Plat","Instrument","Outil","Plante","Vêtement","Verbe","Bible"];
+    const cList = ["Animal","Ville","Prénom","Métier","Pays","Fruit","Objet","Sport",
+                   "Marque","Couleur","Célébrité","Film","Plat","Instrument","Outil",
+                   "Plante","Vêtement","Verbe","Bible"];
     const grid = document.getElementById('selection-grid');
     grid.innerHTML = "";
     cList.forEach(c => {
@@ -399,14 +421,12 @@ function genererCats() {
     });
     document.getElementById('start-btn').disabled = true;
 }
-
-// ── Sélecteur de durée ───────────────────────────────────────────────────────
 function changerTemps(delta) {
     dureeMinutes = Math.max(1, Math.min(10, dureeMinutes + delta));
     document.getElementById('time-display').innerText = dureeMinutes + ' min';
 }
 
-// ── Valider setup ─────────────────────────────────────────────────────────────
+// ── Setup ─────────────────────────────────────────────────────────────────────
 async function validerSetup() {
     if(mode === "solo") {
         letter = "ABCDEFGHIJKLMNOPRST"[Math.floor(Math.random()*19)];
@@ -417,16 +437,16 @@ async function validerSetup() {
     btn.innerHTML = '<span class="spinner"></span>Création...';
     room = document.getElementById('room-name-input').value.trim() || "SALLE";
     try {
-        await dbInsert('partie_multi', { nom_partie: room, pseudo, statut: 'attente' });
+        await dbInsert('partie_multi', { nom_partie:room, pseudo, statut:'attente' });
         document.getElementById('host-room-name').innerText = room;
         document.getElementById('current-room-name').innerText = room;
         document.getElementById('room-indicator').classList.remove('hidden');
-        joueurs = [{ pseudo, isHost: true }];
+        joueurs = [{ pseudo, isHost:true }];
         afficherJoueursHote();
         show('host-waiting');
         ouvrirChannelHote();
     } catch(err) {
-        showError('setup', `Impossible de créer la salle : ${err.message}`);
+        showError('setup', 'Impossible de créer la salle : ' + err.message);
         btn.disabled = false;
         btn.innerHTML = 'CRÉER LA SALLE';
     }
@@ -435,39 +455,46 @@ async function validerSetup() {
 // ── Channel hôte ──────────────────────────────────────────────────────────────
 function ouvrirChannelHote() {
     if(channel) _supabase.removeChannel(channel);
-    channel = _supabase.channel(`room-${room}`, {
-        config: { broadcast: { self: false }, presence: { key: pseudo } }
+    channel = _supabase.channel('room-' + room, {
+        config: { broadcast:{ self:false }, presence:{ key:pseudo } }
     });
 
-    // Recevoir le signal stop d'un guest → l'hôte stoppe aussi
-    channel.on('broadcast', { event: 'stop' }, () => {
+    channel.on('broadcast', { event:'stop' }, () => {
         if(!partieTerminee) stopPartie(false);
     });
-
-    // Recevoir les mots d'un joueur quand il stoppe
-    channel.on('broadcast', { event: 'mots' }, ({ payload }) => {
+    channel.on('broadcast', { event:'mots' }, ({ payload }) => {
         resultatsJoueurs[payload.pseudo] = payload;
-        verifierTousReçus();
+        verifierTousRecus();
     });
-
-    // Recevoir une contestation d'un autre joueur
-    channel.on('broadcast', { event: 'contest' }, ({ payload }) => {
+    channel.on('broadcast', { event:'contest' }, ({ payload }) => {
         recevoirContestation(payload.pseudo, payload.contestations);
     });
+    // Cas 2 joueurs : recevoir la réponse de l'adversaire (qui a accepté/refusé chaque mot)
+    channel.on('broadcast', { event:'vote-2j' }, ({ payload }) => {
+        recevoirVote2J(payload);
+    });
+    // Cas 3+ joueurs : recevoir les scores finaux calculés par l'hôte
+    channel.on('broadcast', { event:'scores-finaux' }, ({ payload }) => {
+        appliquerScoresFinaux(payload.resultatsAjustes, payload.motsCanceles);
+    });
+    // Rejouer
+    channel.on('broadcast', { event:'rejouer' }, () => {
+        entrerEnAttenteRejouer();
+    });
 
-    channel.on('presence', { event: 'join' }, ({ newPresences }) => {
+    channel.on('presence', { event:'join' }, ({ newPresences }) => {
         newPresences.forEach(p => {
-            if(!joueurs.find(j => j.pseudo === p.pseudo))
-                joueurs.push({ pseudo: p.pseudo, isHost: false });
+            if(!joueurs.find(j => j.pseudo===p.pseudo))
+                joueurs.push({ pseudo:p.pseudo, isHost:false });
         });
         afficherJoueursHote();
     });
-    channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
-        leftPresences.forEach(p => { joueurs = joueurs.filter(j => j.pseudo !== p.pseudo); });
+    channel.on('presence', { event:'leave' }, ({ leftPresences }) => {
+        leftPresences.forEach(p => { joueurs = joueurs.filter(j => j.pseudo!==p.pseudo); });
         afficherJoueursHote();
     });
     channel.subscribe(async (status) => {
-        if(status === 'SUBSCRIBED') await channel.track({ pseudo, isHost: true });
+        if(status === 'SUBSCRIBED') await channel.track({ pseudo, isHost:true });
     });
 }
 
@@ -477,21 +504,22 @@ function afficherJoueursHote() {
             ${j.isHost?'👑':'🎮'} ${j.pseudo}
         </div>`).join('');
     const btn = document.getElementById('host-launch-btn');
+    const label = mancheNum > 1 ? `🚀 LANCER LA MANCHE ${mancheNum}` : '🚀 LANCER LA PARTIE';
     if(joueurs.length >= 2) {
         btn.disabled = false;
-        btn.innerHTML = `🚀 LANCER LA PARTIE (${joueurs.length} joueurs)`;
+        btn.innerHTML = label + ' (' + joueurs.length + ' joueurs)';
     } else {
         btn.disabled = true;
-        btn.innerHTML = `⏳ En attente de joueurs... (${joueurs.length}/2 min)`;
+        btn.innerHTML = '⏳ En attente de joueurs... (' + joueurs.length + '/2 min)';
     }
 }
 
-// ── Rejoindre (guest) ─────────────────────────────────────────────────────────
+// ── Channel guest ─────────────────────────────────────────────────────────────
 function rejoindreSalle(nom, hostPseudo) {
     room = nom; mode = "guest";
     document.getElementById('current-room-name').innerText = nom;
     document.getElementById('room-indicator').classList.remove('hidden');
-    joueurs = [{ pseudo: hostPseudo, isHost: true }];
+    joueurs = [{ pseudo:hostPseudo, isHost:true }];
     afficherJoueursGuest();
     show('guest-waiting');
     ouvrirChannelGuest();
@@ -499,53 +527,51 @@ function rejoindreSalle(nom, hostPseudo) {
 
 function ouvrirChannelGuest() {
     if(channel) _supabase.removeChannel(channel);
-    channel = _supabase.channel(`room-${room}`, {
-        config: { broadcast: { self: false }, presence: { key: pseudo } }
+    channel = _supabase.channel('room-' + room, {
+        config: { broadcast:{ self:false }, presence:{ key:pseudo } }
     });
 
-    channel.on('broadcast', { event: 'start' }, ({ payload }) => {
+    channel.on('broadcast', { event:'start' }, ({ payload }) => {
         letter = payload.letter; cats = payload.cats;
         nbJoueursPartie = payload.nbJoueurs || 2;
         dureeMinutes = payload.duree || 3;
         demarrerJeu();
     });
-
-    // Recevoir le signal stop d'un autre joueur → stopper aussi
-    channel.on('broadcast', { event: 'stop' }, () => {
-        if(!partieTerminee) stopPartie(false); // false = pas l'initiateur
+    channel.on('broadcast', { event:'stop' }, () => {
+        if(!partieTerminee) stopPartie(false);
     });
-
-    // Recevoir les mots de tous pour afficher le tableau
-    channel.on('broadcast', { event: 'resultats' }, ({ payload }) => {
+    channel.on('broadcast', { event:'resultats' }, ({ payload }) => {
         afficherResultats(payload.resultats, payload.cats, payload.letter);
     });
-
-    // Recevoir une contestation d'un autre joueur
-    channel.on('broadcast', { event: 'contest' }, ({ payload }) => {
+    channel.on('broadcast', { event:'contest' }, ({ payload }) => {
         recevoirContestation(payload.pseudo, payload.contestations);
     });
-
-    // Recevoir les scores finaux après contestation
-    channel.on('broadcast', { event: 'scores-finaux' }, ({ payload }) => {
-        afficherScoresFinaux(payload.resultats, payload.cats, payload.letter);
+    channel.on('broadcast', { event:'vote-2j' }, ({ payload }) => {
+        recevoirVote2J(payload);
+    });
+    channel.on('broadcast', { event:'scores-finaux' }, ({ payload }) => {
+        appliquerScoresFinaux(payload.resultatsAjustes, payload.motsCanceles);
+    });
+    channel.on('broadcast', { event:'rejouer' }, () => {
+        entrerEnAttenteRejouer();
     });
 
-    channel.on('presence', { event: 'join' }, ({ newPresences }) => {
+    channel.on('presence', { event:'join' }, ({ newPresences }) => {
         newPresences.forEach(p => {
-            if(!joueurs.find(j => j.pseudo === p.pseudo))
-                joueurs.push({ pseudo: p.pseudo, isHost: p.isHost||false });
+            if(!joueurs.find(j => j.pseudo===p.pseudo))
+                joueurs.push({ pseudo:p.pseudo, isHost:p.isHost||false });
         });
         afficherJoueursGuest();
     });
-    channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
-        leftPresences.forEach(p => { joueurs = joueurs.filter(j => j.pseudo !== p.pseudo); });
+    channel.on('presence', { event:'leave' }, ({ leftPresences }) => {
+        leftPresences.forEach(p => { joueurs = joueurs.filter(j => j.pseudo!==p.pseudo); });
         afficherJoueursGuest();
     });
     channel.subscribe(async (status) => {
         if(status === 'SUBSCRIBED') {
-            await channel.track({ pseudo, isHost: false });
+            await channel.track({ pseudo, isHost:false });
         } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            showError('guest-waiting', `Erreur Realtime (${status}). Vérifie que Supabase Realtime est activé.`);
+            showError('guest-waiting', 'Erreur Realtime (' + status + ').');
         }
     });
 }
@@ -557,22 +583,23 @@ function afficherJoueursGuest() {
         </div>`).join('');
 }
 
-// ── Lancer la partie (hôte) ───────────────────────────────────────────────────
+// ── Lancer ────────────────────────────────────────────────────────────────────
 async function lancerTopDepart() {
     letter = "ABCDEFGHIJKLMNOPRST"[Math.floor(Math.random()*19)];
     nbJoueursPartie = joueurs.length;
     resultatsJoueurs = {};
     partieTerminee = false;
     try {
-        await channel.send({ type:'broadcast', event:'start', payload:{ letter, cats, nbJoueurs: nbJoueursPartie, duree: dureeMinutes } });
-        await dbUpdate('partie_multi', { nom_partie: `eq.${room}` }, { statut: 'en_cours' });
-    } catch(err) { console.warn("Erreur lancement:", err.message); }
+        await channel.send({ type:'broadcast', event:'start',
+            payload:{ letter, cats, nbJoueurs:nbJoueursPartie, duree:dureeMinutes } });
+        await dbUpdate('partie_multi', { nom_partie:'eq.'+room }, { statut:'en_cours' });
+    } catch(err) { console.warn(err.message); }
     demarrerJeu();
 }
 
 // ── Annuler / Quitter ─────────────────────────────────────────────────────────
 async function annulerSalle() {
-    try { await dbDelete('partie_multi', { nom_partie: `eq.${room}`, pseudo: `eq.${pseudo}` }); } catch(e){}
+    try { await dbDelete('partie_multi', { nom_partie:'eq.'+room, pseudo:'eq.'+pseudo }); } catch(e){}
     if(channel) { _supabase.removeChannel(channel); channel = null; }
     retourAccueil();
 }
@@ -595,145 +622,135 @@ function demarrerJeu() {
     });
     timerInterval = setInterval(() => {
         timeLeft--;
-        const m=Math.floor(timeLeft/60), s=timeLeft%60;
-        document.getElementById('timer').innerText = `${m}:${s<10?'0':''}${s}`;
-        if(timeLeft<=0) stopPartie(true);
+        const m = Math.floor(timeLeft/60), s = timeLeft%60;
+        document.getElementById('timer').innerText = m + ':' + (s<10?'0':'') + s;
+        if(timeLeft <= 0) stopPartie(true);
     }, 1000);
 }
 
-// ── STOP : appelé par le bouton ou le timer ───────────────────────────────────
-async function stopPartie(estInitiateur = true) {
+// ── Stop ──────────────────────────────────────────────────────────────────────
+async function stopPartie(estInitiateur) {
     if(partieTerminee) return;
     partieTerminee = true;
     clearInterval(timerInterval);
 
-    // Collecter ses propres mots
     const inputs = document.querySelectorAll('.player-word');
     let mots = [], score = 0;
     inputs.forEach(i => {
         const v = i.value.trim(); mots.push(v);
         if(v.toLowerCase().startsWith(letter.toLowerCase()) && v.length > 1) score++;
     });
-
     const tempsEcoule = dureeMinutes * 60 - timeLeft;
-    const monResultat = { pseudo, score, mots, temps: tempsEcoule };
+    const monResultat = { pseudo, score, mots, temps:tempsEcoule };
 
     if(mode === 'solo') {
-        // Solo : affichage direct
-        const seulResultat = [monResultat];
-        afficherResultats(seulResultat, cats, letter);
-        // Sauvegarde
+        afficherResultats([monResultat], cats, letter);
         try {
             await dbInsert('partie_solo', {
-                pseudo, score, nom_partie: "SOLO",
+                pseudo, score, nom_partie:"SOLO",
                 mot_1:mots[0]||"", mot_2:mots[1]||"", mot_3:mots[2]||"",
                 mot_4:mots[3]||"", mot_5:mots[4]||"", mot_6:mots[5]||"",
                 mot_7:mots[6]||"", mot_8:mots[7]||""
             });
-        } catch(e) {}
+        } catch(e){}
         return;
     }
 
-    // Multi : enregistrer ses mots et attendre les autres
     resultatsJoueurs[pseudo] = monResultat;
     show('waiting-results');
 
     if(estInitiateur && channel) {
-        // Prévenir les autres de stopper (fonctionne pour host ET guest)
-        try { await channel.send({ type:'broadcast', event:'stop', payload:{ stoppeur: pseudo } }); } catch(e){}
+        try { await channel.send({ type:'broadcast', event:'stop', payload:{ stoppeur:pseudo } }); } catch(e){}
     }
-
-    // Sauvegarder en base
     try {
         await dbInsert('partie_multi', {
-            pseudo, score, nom_partie: room,
+            pseudo, score, nom_partie:room,
             mot_1:mots[0]||"", mot_2:mots[1]||"", mot_3:mots[2]||"",
             mot_4:mots[3]||"", mot_5:mots[4]||"", mot_6:mots[5]||"",
             mot_7:mots[6]||"", mot_8:mots[7]||""
         });
-    } catch(e) {}
-
-    // Envoyer ses mots aux autres via broadcast
+    } catch(e){}
     if(channel) {
-        try { await channel.send({ type:'broadcast', event:'mots', payload: monResultat }); } catch(e){}
+        try { await channel.send({ type:'broadcast', event:'mots', payload:monResultat }); } catch(e){}
     }
-
-    verifierTousReçus();
+    verifierTousRecus();
 }
 
-// ── Vérifier si tous les joueurs ont envoyé leurs mots ───────────────────────
-async function verifierTousReçus() {
-    const nbReçus = Object.keys(resultatsJoueurs).length;
-    if(nbReçus >= nbJoueursPartie) {
-        const tousResultats = Object.values(resultatsJoueurs);
-
-        // L'hôte diffuse les résultats consolidés à tous
-        if(mode === 'host' && channel) {
-            try {
-                await channel.send({ type:'broadcast', event:'resultats', payload:{ resultats: tousResultats, cats, letter } });
-            } catch(e){}
-        }
-
-        // Marquer la salle comme terminée et nettoyer le lobby
-        if(mode === 'host') {
-            try { await dbUpdate('partie_multi', { nom_partie: `eq.${room}` }, { statut: 'terminee' }); } catch(e){}
-        }
-
-        afficherResultats(tousResultats, cats, letter);
-        if(channel) { _supabase.removeChannel(channel); channel = null; }
+// ── Vérifier si tous les mots sont reçus ─────────────────────────────────────
+async function verifierTousRecus() {
+    if(Object.keys(resultatsJoueurs).length < nbJoueursPartie) return;
+    const tousResultats = Object.values(resultatsJoueurs);
+    if(mode === 'host' && channel) {
+        try {
+            await channel.send({ type:'broadcast', event:'resultats',
+                payload:{ resultats:tousResultats, cats, letter } });
+        } catch(e){}
     }
+    if(mode === 'host') {
+        try { await dbUpdate('partie_multi', { nom_partie:'eq.'+room }, { statut:'terminee' }); } catch(e){}
+    }
+    afficherResultats(tousResultats, cats, letter);
 }
 
-// ── Afficher le tableau des résultats (phase 1 : contestation) ───────────────
+// ── Afficher résultats (phase contestation) ───────────────────────────────────
 function afficherResultats(resultats, categoriesList, lettreTiree) {
     show('result');
     resultatsFinaux = resultats;
     catsFinales = categoriesList;
     lettreFinale = lettreTiree;
     mesContestations = new Set();
+    contestationsRecues = {};
 
     document.getElementById('result-letter').innerText = lettreTiree;
-    document.getElementById('result-title').innerText = 'Résultats de la partie';
+    document.getElementById('result-title').innerText =
+        mancheNum > 1 ? 'Manche ' + mancheNum + ' — Résultats' : 'Résultats';
 
-    renderTableau(resultats, categoriesList, lettreTiree, false);
+    // Reset tous les divs de contestation
+    document.getElementById('contest-banner').classList.add('hidden');
+    document.getElementById('contest-actions').classList.add('hidden');
+    document.getElementById('vote-banner').classList.add('hidden');
+    document.getElementById('waiting-contest-div').classList.add('hidden');
+    document.getElementById('end-btns').classList.add('hidden');
 
-    // Phase contestation seulement en multi
+    renderTableau(resultats, categoriesList, lettreTiree, false, new Set());
+
     if(mode !== 'solo' && resultats.length > 1) {
         contestPhase = true;
         nbJoueursContestants = resultats.length;
-        contestationsReçues = {};
         document.getElementById('contest-banner').classList.remove('hidden');
         document.getElementById('contest-banner').innerHTML =
-            "🗳️ <b>Phase de contestation</b> — Clique sur les mots adverses avec lesquels tu n'es pas d'accord. Valide quand tu as terminé.";
+            "🗳️ <b>Phase de contestation</b> — Clique sur les mots de tes adversaires avec lesquels tu n'es pas d'accord, puis valide.";
         document.getElementById('contest-actions').classList.remove('hidden');
-        document.getElementById('btn-retour').classList.add('hidden');
     } else {
-        document.getElementById('btn-retour').classList.remove('hidden');
+        // Solo : bouton quitter uniquement
+        const eb = document.getElementById('end-btns');
+        eb.classList.remove('hidden');
+        eb.innerHTML = '<button onclick="location.reload()" class="btn btn-grey" style="flex:1;margin-bottom:0">🚪 QUITTER</button>';
     }
 }
 
-// ── Rendu du tableau (réutilisable) ─────────────────────────────────────────
+// ── Rendu tableau ─────────────────────────────────────────────────────────────
 function renderTableau(resultats, categoriesList, lettreTiree, finale, motsCanceles) {
-    motsCanceles = motsCanceles || new Set();
     const tries = [...resultats].sort((a,b) => b.score - a.score);
 
     // Podium
     const medailles = ['🥇','🥈','🥉'];
     const classes   = ['first','second','third'];
-    const podiumEl  = document.getElementById('scores-podium');
-    podiumEl.innerHTML = tries.map((r, i) => {
-        const tps = r.temps != null ? r.temps : null;
-        const tpsStr = (i === 0 && tps != null)
-            ? `<div style="font-size:0.75rem;color:#888;margin-top:2px">⏱ ${Math.floor(tps/60)}:${String(tps%60).padStart(2,'0')}</div>`
+    document.getElementById('scores-podium').innerHTML = tries.map((r,i) => {
+        const tps = (i===0 && r.temps!=null)
+            ? `<div style="font-size:0.75rem;color:#888;margin-top:2px">⏱ ${Math.floor(r.temps/60)}:${String(r.temps%60).padStart(2,'0')}</div>`
             : '';
-        return `<div class="podium-card ${classes[i]||""} ${finale?"podium-final":""}">
-            <div class="podium-rank">${medailles[i] || '#'+(i+1)}</div>
+        const total = (mancheNum > 1 && scoresCumules[r.pseudo] != null)
+            ? `<div class="podium-total">Total : ${scoresCumules[r.pseudo]} pts</div>` : '';
+        return `<div class="podium-card ${classes[i]||''} ${finale?'podium-final':''}">
+            <div class="podium-rank">${medailles[i]||'#'+(i+1)}</div>
             <div class="podium-name">${r.pseudo}</div>
             <div class="podium-score">${r.score}/${categoriesList.length}</div>
-            ${tpsStr}
+            ${tps}${total}
         </div>`;
     }).join('');
 
+    // Tableau
     const table = document.getElementById('results-table');
     let thead = `<thead><tr><th>Catégorie</th>${tries.map(r =>
         `<th>${r.pseudo}${r.pseudo===pseudo?' (toi)':''}</th>`).join('')}</tr></thead>`;
@@ -744,41 +761,48 @@ function renderTableau(resultats, categoriesList, lettreTiree, finale, motsCance
         tries.forEach(r => {
             const mot = (r.mots && r.mots[idx]) ? r.mots[idx] : '';
             const valide = mot && mot.toLowerCase().startsWith(lettreTiree.toLowerCase()) && mot.length > 1;
-            const key = `${r.pseudo}|${idx}`;
+            const key = r.pseudo + '|' + idx;
             const estAnnule = motsCanceles.has(key);
             const estConteste = mesContestations.has(key);
             const estMoi = (r.pseudo === pseudo);
-
-            let cls = mot ? (valide ? 'word-valid' : 'word-invalid') : 'word-empty';
-            let extraCls = estAnnule ? ' annule' : (estConteste ? ' conteste' : '');
-            let icon = estConteste ? '<span class="contest-icon">🚩</span>' : (estAnnule ? '<span class="contest-icon">❌</span>' : '');
-
-            // On peut contester : mots valides des adversaires (pas les siens)
+            const baseCls = mot ? (valide ? 'word-valid' : 'word-invalid') : 'word-empty';
+            const extraCls = estAnnule ? ' annule' : (estConteste ? ' conteste' : '');
+            const icon = estAnnule ? '<span class="contest-icon">❌</span>'
+                       : estConteste ? '<span class="contest-icon">🚩</span>' : '';
             const peutContester = !estMoi && valide && contestPhase && !finale;
-            const clickAttr = peutContester
-                ? `onclick="toggleContestation('${r.pseudo}', ${idx}, this)"` : '';
-
-            tbody += `<td class="word-cell ${peutContester?'contestable':''} ${extraCls}" ${clickAttr}>
-                <span class="word-text ${cls}">${mot || '—'}</span>${icon}
+            const click = peutContester
+                ? `onclick="toggleContestation('${r.pseudo}',${idx},this)"` : '';
+            tbody += `<td class="word-cell${peutContester?' contestable':''}${extraCls}" ${click}>
+                <span class="word-text ${baseCls}">${mot||'—'}</span>${icon}
             </td>`;
         });
         tbody += '</tr>';
     });
 
-    // Ligne score
-    tbody += `<tr style="font-weight:bold;background:#f0f4f8"><td class="cat-col">SCORE</td>`;
+    // Ligne score manche
+    tbody += `<tr style="font-weight:bold;background:#f0f4f8"><td class="cat-col">Score manche</td>`;
     tries.forEach(r => {
         tbody += `<td><span class="score-badge">${r.score}/${categoriesList.length}</span></td>`;
     });
-    tbody += '</tr></tbody>';
+    tbody += '</tr>';
 
+    // Ligne score total (si plusieurs manches)
+    if(mancheNum > 1 && Object.keys(scoresCumules).length > 0) {
+        tbody += `<tr class="total-row"><td class="cat-col">Total (${mancheNum} manches)</td>`;
+        tries.forEach(r => {
+            tbody += `<td><span class="total-badge">${scoresCumules[r.pseudo]||0} pts</span></td>`;
+        });
+        tbody += '</tr>';
+    }
+
+    tbody += '</tbody>';
     table.innerHTML = thead + tbody;
 }
 
-// ── Toggler une contestation ─────────────────────────────────────────────────
+// ── Toggle contestation ───────────────────────────────────────────────────────
 function toggleContestation(ciblePseudo, catIdx, cellEl) {
     if(!contestPhase) return;
-    const key = `${ciblePseudo}|${catIdx}`;
+    const key = ciblePseudo + '|' + catIdx;
     const cell = cellEl.closest('td');
     if(mesContestations.has(key)) {
         mesContestations.delete(key);
@@ -795,101 +819,272 @@ function toggleContestation(ciblePseudo, catIdx, cellEl) {
     }
 }
 
-// ── Valider et envoyer ses contestations ─────────────────────────────────────
+// ── Valider ses contestations ─────────────────────────────────────────────────
 async function validerContestations() {
     contestPhase = false;
     document.getElementById('contest-actions').classList.add('hidden');
-    document.getElementById('contest-banner').innerHTML =
-        '⏳ En attente des contestations des autres joueurs...';
 
-    // Enregistrer les siennes
-    recevoirContestation(pseudo, Array.from(mesContestations));
+    const mesContest = Array.from(mesContestations);
 
-    // Broadcaster ses contestations
+    // Enregistrer les siennes localement
+    contestationsRecues[pseudo] = new Set(mesContest);
+
+    // Broadcaster
     if(channel) {
         try {
-            await channel.send({ type:'broadcast', event:'contest', payload:{
-                pseudo, contestations: Array.from(mesContestations)
-            }});
+            await channel.send({ type:'broadcast', event:'contest',
+                payload:{ pseudo, contestations:mesContest } });
         } catch(e){}
     }
 
+    document.getElementById('contest-banner').innerHTML = '⏳ Contestations envoyées, en attente des autres joueurs...';
     document.getElementById('waiting-contest-div').classList.remove('hidden');
     document.getElementById('waiting-contest-div').innerText =
-        `✅ Tes contestations envoyées — en attente des autres...`;
+        '⏳ Contestations reçues : 1/' + nbJoueursContestants;
+
+    traiterContestations();
 }
 
-// ── Recevoir une contestation d'un autre joueur ──────────────────────────────
+// ── Recevoir contestation d'un autre ─────────────────────────────────────────
 function recevoirContestation(joueurPseudo, contestationsArray) {
-    contestationsReçues[joueurPseudo] = new Set(contestationsArray);
+    if(contestationsRecues[joueurPseudo]) return; // déjà reçu
+    contestationsRecues[joueurPseudo] = new Set(contestationsArray);
 
-    const nbReçus = Object.keys(contestationsReçues).length;
-    if(nbReçus < nbJoueursContestants) {
-        document.getElementById('waiting-contest-div').classList.remove('hidden');
-        document.getElementById('waiting-contest-div').innerText =
-            `⏳ Contestations reçues : ${nbReçus}/${nbJoueursContestants}`;
+    const nbRecus = Object.keys(contestationsRecues).length;
+    document.getElementById('waiting-contest-div').classList.remove('hidden');
+    document.getElementById('waiting-contest-div').innerText =
+        '⏳ Contestations reçues : ' + nbRecus + '/' + nbJoueursContestants;
+
+    traiterContestations();
+}
+
+// ── Traiter les contestations selon le nb de joueurs ─────────────────────────
+function traiterContestations() {
+    const nbRecus = Object.keys(contestationsRecues).length;
+    if(nbRecus < nbJoueursContestants) return;
+
+    // Tous ont voté
+    if(nbJoueursContestants === 2) {
+        traiterContestation2Joueurs();
+    } else {
+        traiterContestationMajorite();
+    }
+}
+
+// ── Cas 2 joueurs : l'adversaire valide mot par mot ───────────────────────────
+function traiterContestation2Joueurs() {
+    // Trouver l'adversaire
+    const adversaire = Object.keys(contestationsRecues).find(p => p !== pseudo);
+    if(!adversaire) { finaliserSansContestation(); return; }
+
+    const contestsAdverse = contestationsRecues[adversaire]; // mots que l'adversaire conteste (mes mots)
+    const contestsMoi     = contestationsRecues[pseudo];     // mots que je conteste (ses mots)
+
+    // Les mots de l'adversaire que je conteste → je dois lui demander
+    // Les mots que l'adversaire conteste (les miens) → je dois valider
+
+    // Fusionner les deux directions : chacun valide les contestations portant sur SES mots
+    // Je dois afficher un panneau de vote pour les mots que l'ADVERSAIRE a contestés (mes mots)
+    // Et l'adversaire voit un panneau pour les mots que J'AI contestés (ses mots)
+    // => Chacun vote sur SES propres mots contestés, puis on échange les votes
+
+    const motsMisEnCauseDeMoi = Array.from(contestsAdverse).filter(k => k.startsWith(pseudo + '|'));
+    mesVotes2J = {};
+
+    if(motsMisEnCauseDeMoi.length === 0) {
+        // L'adversaire ne conteste rien de moi → je vote d'emblée vide
+        envoyerMesVotes2J();
         return;
     }
 
-    // Tout le monde a voté → calculer les mots annulés
-    // Un mot est annulé si TOUS les autres joueurs (sauf le propriétaire) l'ont contesté
-    const motsCanceles = new Set();
-    const joueursPseudos = resultatsFinaux.map(r => r.pseudo);
+    // Afficher le panneau
+    document.getElementById('waiting-contest-div').classList.add('hidden');
+    document.getElementById('contest-banner').classList.add('hidden');
 
-    catsFinales.forEach((cat, idx) => {
-        joueursPseudos.forEach(ciblePseudo => {
-            // Les autres joueurs (pas le propriétaire du mot)
-            const autres = joueursPseudos.filter(p => p !== ciblePseudo);
-            if(autres.length === 0) return;
-            const key = `${ciblePseudo}|${idx}`;
-            const tousConteste = autres.every(p =>
-                contestationsReçues[p] && contestationsReçues[p].has(key)
-            );
-            if(tousConteste) motsCanceles.add(key);
-        });
+    const vb = document.getElementById('vote-banner');
+    vb.classList.remove('hidden');
+    let html = `<b>🚩 ${adversaire} conteste ${motsMisEnCauseDeMoi.length} de tes mots — Es-tu d'accord ?</b>`;
+
+    motsMisEnCauseDeMoi.forEach(key => {
+        const idx = parseInt(key.split('|')[1]);
+        const myMot = resultatsFinaux.find(r => r.pseudo===pseudo)?.mots[idx] || '?';
+        const cat = catsFinales[idx] || '?';
+        mesVotes2J[key] = false; // par défaut : je refuse la contestation (garde mon point)
+        html += `<div class="vote-item" id="vi-${idx}">
+            <span class="vote-label">${cat} → <span class="vote-word">${myMot}</span></span>
+            <div class="vote-actions">
+                <button class="btn-vote btn-vote-non selected" id="vno-${idx}"
+                    onclick="voterMot2J('${key}',false,${idx})">❌ Je garde</button>
+                <button class="btn-vote btn-vote-ok" id="vok-${idx}"
+                    onclick="voterMot2J('${key}',true,${idx})">✅ OK annulé</button>
+            </div>
+        </div>`;
     });
 
-    // Recalculer les scores
-    const resultatsAjustes = resultatsFinaux.map(r => {
-        let newScore = 0;
-        catsFinales.forEach((cat, idx) => {
-            const mot = r.mots && r.mots[idx] ? r.mots[idx] : '';
-            const valide = mot && mot.toLowerCase().startsWith(lettreFinale.toLowerCase()) && mot.length > 1;
-            const key = `${r.pseudo}|${idx}`;
-            if(valide && !motsCanceles.has(key)) newScore++;
-        });
-        return { ...r, score: newScore };
-    });
+    html += `<button onclick="envoyerMesVotes2J()" class="btn btn-success"
+        style="width:100%;margin-top:10px;padding:10px">✅ Confirmer mes réponses</button>`;
+    vb.innerHTML = html;
+}
 
-    // L'hôte diffuse les scores finaux
-    if(mode === 'host' && channel) {
+function voterMot2J(key, accepte, idx) {
+    mesVotes2J[key] = accepte;
+    document.getElementById('vok-' + idx).classList.toggle('selected', accepte);
+    document.getElementById('vno-' + idx).classList.toggle('selected', !accepte);
+}
+
+async function envoyerMesVotes2J() {
+    document.getElementById('vote-banner').classList.add('hidden');
+    document.getElementById('waiting-contest-div').classList.remove('hidden');
+    document.getElementById('waiting-contest-div').innerText = '⏳ En attente de la réponse de ton adversaire...';
+
+    if(channel) {
         try {
-            channel.send({ type:'broadcast', event:'scores-finaux', payload:{
-                resultats: resultatsAjustes,
-                cats: catsFinales,
-                letter: lettreFinale,
-                motsCanceles: Array.from(motsCanceles)
-            }});
+            await channel.send({ type:'broadcast', event:'vote-2j',
+                payload:{ voteur:pseudo, votes:mesVotes2J } });
         } catch(e){}
     }
 
-    afficherScoresFinaux(resultatsAjustes, catsFinales, lettreFinale, motsCanceles);
+    // Enregistrer localement
+    votesRecus2J[pseudo] = mesVotes2J;
+    calculerFinaux2J();
 }
 
-// ── Afficher les scores finaux après contestation ────────────────────────────
-function afficherScoresFinaux(resultats, categoriesList, lettreTiree, motsCanceles) {
-    // Si on reçoit depuis broadcast, motsCanceles vient en array
-    if(Array.isArray(motsCanceles)) motsCanceles = new Set(motsCanceles);
-    else if(!motsCanceles) motsCanceles = new Set();
+// Stockage des votes 2 joueurs
+let votesRecus2J = {};
 
-    contestPhase = false;
+function recevoirVote2J(payload) {
+    votesRecus2J[payload.voteur] = payload.votes;
+    calculerFinaux2J();
+}
+
+function calculerFinaux2J() {
+    // On attend les votes des 2 joueurs
+    if(Object.keys(votesRecus2J).length < 2) return;
+
+    // Fusionner : un mot est annulé si son propriétaire a accepté la contestation
+    const motsCanceles = new Set();
+    Object.values(votesRecus2J).forEach(votes => {
+        Object.entries(votes).forEach(([key, accepte]) => {
+            if(accepte) motsCanceles.add(key);
+        });
+    });
+
+    diffuserEtAfficherFinaux(motsCanceles);
+}
+
+// ── Cas 3+ joueurs : majorité ─────────────────────────────────────────────────
+function traiterContestationMajorite() {
+    const motsCanceles = new Set();
+    const pseudos = resultatsFinaux.map(r => r.pseudo);
+
+    catsFinales.forEach((cat, idx) => {
+        pseudos.forEach(cible => {
+            const autres = pseudos.filter(p => p !== cible);
+            if(!autres.length) return;
+            const key = cible + '|' + idx;
+            const nb = autres.filter(p => contestationsRecues[p]?.has(key)).length;
+            if(nb > autres.length / 2) motsCanceles.add(key);
+        });
+    });
+
+    diffuserEtAfficherFinaux(motsCanceles);
+}
+
+// ── Diffuser et afficher les finaux ──────────────────────────────────────────
+async function diffuserEtAfficherFinaux(motsCanceles) {
+    // Recalculer les scores
+    const resultatsAjustes = resultatsFinaux.map(r => {
+        let s = 0;
+        catsFinales.forEach((cat, idx) => {
+            const mot = r.mots?.[idx] || '';
+            const valide = mot && mot.toLowerCase().startsWith(lettreFinale.toLowerCase()) && mot.length > 1;
+            if(valide && !motsCanceles.has(r.pseudo + '|' + idx)) s++;
+        });
+        return { ...r, score:s };
+    });
+
+    // L'hôte diffuse
+    if(mode === 'host' && channel) {
+        try {
+            await channel.send({ type:'broadcast', event:'scores-finaux',
+                payload:{ resultatsAjustes, motsCanceles:Array.from(motsCanceles) } });
+        } catch(e){}
+    }
+
+    appliquerScoresFinaux(resultatsAjustes, Array.from(motsCanceles));
+}
+
+// ── Appliquer et afficher les scores finaux ───────────────────────────────────
+function appliquerScoresFinaux(resultatsAjustes, motsCancelesArr) {
+    const motsCanceles = new Set(motsCancelesArr);
+
+    // Accumuler les scores
+    resultatsAjustes.forEach(r => {
+        if(scoresCumules[r.pseudo] == null) scoresCumules[r.pseudo] = 0;
+        scoresCumules[r.pseudo] += r.score;
+    });
+
     document.getElementById('contest-banner').classList.add('hidden');
     document.getElementById('contest-actions').classList.add('hidden');
+    document.getElementById('vote-banner').classList.add('hidden');
     document.getElementById('waiting-contest-div').classList.add('hidden');
-    document.getElementById('result-title').innerText = '🏆 Scores finaux';
-    document.getElementById('btn-retour').classList.remove('hidden');
 
-    renderTableau(resultats, categoriesList, lettreTiree, true, motsCanceles);
+    document.getElementById('result-title').innerText =
+        mancheNum > 1 ? '🏆 Scores finaux — Manche ' + mancheNum : '🏆 Scores finaux';
+
+    renderTableau(resultatsAjustes, catsFinales, lettreFinale, true, motsCanceles);
+
+    document.getElementById('end-btns').classList.remove('hidden');
+}
+
+function finaliserSansContestation() {
+    diffuserEtAfficherFinaux(new Set());
+}
+
+// ── REJOUER ───────────────────────────────────────────────────────────────────
+async function rejouer() {
+    mancheNum++;
+    // Réinitialiser l'état de manche (pas les scores cumulés)
+    resultatsJoueurs = {};
+    partieTerminee = false;
+    mesContestations = new Set();
+    contestationsRecues = {};
+    votesRecus2J = {};
+    mesVotes2J = {};
+
+    if(mode === 'host') {
+        try { await dbUpdate('partie_multi', { nom_partie:'eq.'+room }, { statut:'attente' }); } catch(e){}
+        if(channel) {
+            try { await channel.send({ type:'broadcast', event:'rejouer', payload:{} }); } catch(e){}
+        }
+        // L'hôte entre en salle d'attente
+        entrerEnAttenteHote();
+    } else {
+        // Guest attend le signal de l'hôte
+        entrerEnAttenteRejouer();
+    }
+}
+
+function entrerEnAttenteHote() {
+    document.getElementById('host-room-name').innerText = room;
+    document.getElementById('current-room-name').innerText = room;
+    document.getElementById('room-indicator').classList.remove('hidden');
+    document.getElementById('host-info-box').innerText =
+        'Manche ' + mancheNum + ' — Lance quand tout le monde est prêt !';
+    afficherJoueursHote();
+    show('host-waiting');
+}
+
+function entrerEnAttenteRejouer() {
+    // Réinitialiser l'état de manche pour les guests aussi
+    resultatsJoueurs = {};
+    partieTerminee = false;
+    mesContestations = new Set();
+    contestationsRecues = {};
+    votesRecus2J = {};
+    mesVotes2J = {};
+    show('guest-waiting');
+    afficherJoueursGuest();
 }
 </script>
 </body>
