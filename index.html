@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baccalaureline</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <style>
+        :root { --primary: #3498db; --success: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; }
+        body { font-family: 'Segoe UI', sans-serif; background: #fdfdfd; margin: 0; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .bg-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+        .floating-letter { position: absolute; font-weight: 900; color: rgba(52,152,219,0.15); animation: float infinite ease-in-out; }
+        @keyframes float { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-20px) rotate(10deg)} }
+        .container { background: rgba(255,255,255,0.92); backdrop-filter: blur(5px); width: 95%; max-width: 550px; padding: 30px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); text-align: center; z-index: 10; max-height: 90vh; overflow-y: auto; }
+        .room-header { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: var(--dark); color: white; padding: 5px 20px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; white-space: nowrap; }
+        h1 { font-size: 2.5rem; color: var(--dark); margin-bottom: 20px; }
+        h1 span { color: var(--primary); }
+        .btn { padding: 14px 22px; border: none; border-radius: 12px; cursor: pointer; font-size: 1rem; font-weight: bold; transition: 0.2s; width: 100%; margin-bottom: 10px; }
+        .btn:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-solo  { background: var(--primary); color: white; }
+        .btn-multi { background: #9b59b6; color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger  { background: var(--danger); color: white; }
+        .btn-grey    { background: #eee; color: #333; }
+        .lobby-list { background:#fff; border:1px solid #ddd; border-radius:12px; max-height:220px; overflow-y:auto; margin:15px 0; }
+        .room-item { padding:12px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+        .room-item:last-child { border-bottom:none; }
+        .room-item:hover { background:#f8f9fa; }
+        .grid-selection { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin:15px 0; max-height:200px; overflow-y:auto; }
+        .cat-card { border:2px solid #eee; padding:10px; border-radius:10px; cursor:pointer; background:white; transition:0.2s; }
+        .cat-card:hover { border-color:#aaa; }
+        .cat-card.selected { border-color:var(--success); background:#e8f8f0; }
+        input[type="text"] { padding:14px; border:2px solid #eee; border-radius:12px; width:100%; font-size:1.1rem; box-sizing:border-box; margin-bottom:10px; }
+        .waiting-room { background:#f8f9fa; border-radius:14px; padding:15px; margin:15px 0; }
+        .waiting-room h4 { margin:0 0 10px 0; color:var(--dark); font-size:0.9rem; text-transform:uppercase; letter-spacing:1px; }
+        .players-list { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; min-height:40px; align-items:center; }
+        .player-badge { background:white; border:2px solid var(--primary); border-radius:20px; padding:5px 14px; font-size:0.9rem; font-weight:bold; color:var(--dark); display:flex; align-items:center; gap:5px; animation:popIn 0.3s ease; }
+        .player-badge.host { border-color:#f39c12; background:#fef9e7; }
+        @keyframes popIn { from{transform:scale(0.6);opacity:0} to{transform:scale(1);opacity:1} }
+        #timer { font-size:2rem; color:var(--danger); font-weight:bold; }
+        #letter { font-size:5rem; color:var(--primary); font-weight:900; line-height:1; }
+        .game-field { display:flex; align-items:center; background:#f8f9fa; padding:10px; border-radius:12px; margin-bottom:8px; border:1px solid #eee; }
+        .game-field label { font-weight:bold; color:var(--dark); min-width:95px; text-align:left; }
+        .game-field input { flex:1; margin-left:8px; margin-bottom:0; }
+        .hidden { display:none; }
+        .spinner { display:inline-block; width:16px; height:16px; border:3px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; margin-right:6px; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        .error-box { background:#fdecea; border:1px solid #e74c3c; color:#c0392b; border-radius:10px; padding:12px; margin:10px 0; font-size:0.88rem; text-align:left; word-break:break-word; }
+        .info-box { background:#eaf4fb; border:1px solid #3498db; color:#1a6a96; border-radius:10px; padding:10px 14px; margin:10px 0; font-size:0.85rem; }
+    </style>
+</head>
+<body>
+<div id="room-indicator" class="room-header hidden">PARTIE : <span id="current-room-name">...</span></div>
+<div class="bg-container" id="bg-letters"></div>
+
+<div class="container">
+    <h1>Bacca<span>laureline</span></h1>
+
+    <!-- ACCUEIL -->
+    <div id="home">
+        <input type="text" id="pseudo" placeholder="Ton pseudo...">
+        <div style="margin-top:10px;">
+            <button class="btn btn-solo"  onclick="ouvrirSolo()">🎯 MODE SOLO</button>
+            <button class="btn btn-multi" onclick="ouvrirCreateMulti()">➕ CRÉER UNE PARTIE</button>
+            <button class="btn btn-grey"  onclick="ouvrirLobby()">🔍 REJOINDRE UNE PARTIE</button>
+        </div>
+    </div>
+
+    <!-- LOBBY -->
+    <div id="lobby" class="hidden">
+        <h3>Parties disponibles</h3>
+        <div id="room-list" class="lobby-list"><p style="padding:12px">Recherche...</p></div>
+        <button class="btn btn-grey" onclick="retourAccueil()">← RETOUR</button>
+    </div>
+
+    <!-- SETUP -->
+    <div id="setup" class="hidden">
+        <h3 id="setup-title">Créer une salle</h3>
+        <input type="text" id="room-name-input" placeholder="Nom de la salle (ex: AMIS)">
+        <div id="selection-grid" class="grid-selection"></div>
+        <p style="color:#888;font-size:0.88rem;margin:4px 0">Sélectionne 1 à 8 catégories</p>
+        <button id="start-btn" onclick="validerSetup()" disabled class="btn btn-multi">CRÉER LA SALLE</button>
+    </div>
+
+    <!-- SALLE ATTENTE HÔTE -->
+    <div id="host-waiting" class="hidden">
+        <h3>🎮 Salle : <span id="host-room-name" style="color:var(--primary)"></span></h3>
+        <div class="info-box">Partage le nom de ta salle avec tes amis !</div>
+        <div class="waiting-room">
+            <h4>👥 Joueurs connectés</h4>
+            <div id="host-players-list" class="players-list"></div>
+        </div>
+        <button id="host-launch-btn" onclick="lancerTopDepart()" class="btn btn-success" disabled>⏳ En attente de joueurs...</button>
+        <button onclick="annulerSalle()" class="btn btn-danger">✖ ANNULER LA SALLE</button>
+    </div>
+
+    <!-- SALLE ATTENTE GUEST -->
+    <div id="guest-waiting" class="hidden">
+        <h3>⏳ En attente de l'hôte...</h3>
+        <div class="info-box">La partie démarrera quand l'hôte lancera le top départ.</div>
+        <div class="waiting-room">
+            <h4>👥 Joueurs dans la salle</h4>
+            <div id="guest-players-list" class="players-list"></div>
+        </div>
+        <button onclick="quitterSalle()" class="btn btn-grey" style="margin-top:10px">← QUITTER</button>
+    </div>
+
+    <!-- JEU -->
+    <div id="game" class="hidden">
+        <div id="letter">-</div>
+        <div id="timer">03:00</div>
+        <div id="game-fields"></div>
+        <button onclick="finirPartie()" class="btn btn-danger" style="margin-top:18px">🛑 STOP !</button>
+    </div>
+
+    <!-- RÉSULTAT -->
+    <div id="result" class="hidden">
+        <h2>✅ Score enregistré</h2>
+        <div style="font-size:3rem;font-weight:900;color:var(--primary)" id="score-display">0 / 0</div>
+        <button onclick="location.reload()" class="btn btn-solo" style="margin-top:20px">🔄 RETOUR AU MENU</button>
+    </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://rntiiwtohwzsyzxnicxt.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJudGlpd3RvaHd6c3l6eG5pY3h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3ODM3MjgsImV4cCI6MjA4NTM1OTcyOH0.NV9KXoOnfnyKAqrZ4T_wc6g5D_Uh0p140UcsdBQ-ATs";
+
+// Client Supabase (version fixe 2.38.4 — stable, sans bug DataCloneError)
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── Helpers DB ───────────────────────────────────────────────────────────────
+async function dbSelect(table, filters) {
+    let q = _supabase.from(table).select(filters.select || '*');
+    if(filters.statut)     q = q.eq('statut',     filters.statut.replace('eq.',''));
+    if(filters.created_at) {
+        if(filters.created_at.startsWith('gte.')) q = q.gte('created_at', filters.created_at.slice(4));
+        if(filters.created_at.startsWith('lt.'))  q = q.lt('created_at',  filters.created_at.slice(3));
+    }
+    if(filters.order) {
+        const [col, dir] = filters.order.split('.');
+        q = q.order(col, { ascending: dir === 'asc' });
+    }
+    const { data, error } = await q;
+    if(error) throw new Error(error.message);
+    return data;
+}
+
+async function dbInsert(table, body) {
+    const { data, error } = await _supabase.from(table).insert([body]).select();
+    if(error) throw new Error(error.message);
+    return data;
+}
+
+async function dbUpdate(table, filters, body) {
+    let q = _supabase.from(table).update(body);
+    Object.entries(filters).forEach(([k, v]) => {
+        q = q.eq(k, v.replace('eq.',''));
+    });
+    const { error } = await q;
+    if(error) throw new Error(error.message);
+    return true;
+}
+
+async function dbDelete(table, filters) {
+    let q = _supabase.from(table).delete();
+    Object.entries(filters).forEach(([k, v]) => {
+        const val = String(v);
+        if(val.startsWith('eq.'))  q = q.eq(k,  val.slice(3));
+        if(val.startsWith('lt.'))  q = q.lt(k,  val.slice(3));
+        if(val.startsWith('gte.')) q = q.gte(k, val.slice(4));
+    });
+    const { error } = await q;
+    if(error) throw new Error(error.message);
+    return true;
+}
+// ────────────────────────────────────────────────────────────────────────────
+
+let mode = "", room = "", channel = null;
+let cats = [], letter = "", timerInterval, timeLeft = 180;
+let pseudo = "", joueurs = [];
+
+// Fond animé
+const bg = document.getElementById('bg-letters');
+for(let i=0;i<40;i++){
+    const s=document.createElement('div'); s.className='floating-letter';
+    s.innerText="ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random()*26)];
+    s.style.left=Math.random()*100+"%"; s.style.top=Math.random()*100+"%";
+    s.style.fontSize=Math.random()*30+20+"px"; s.style.animationDuration=Math.random()*6+4+"s";
+    bg.appendChild(s);
+}
+
+// ── UI helpers ───────────────────────────────────────────────────────────────
+function show(id) {
+    ['home','lobby','setup','host-waiting','guest-waiting','game','result']
+        .forEach(d => document.getElementById(d).classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+}
+
+function showError(containerId, msg) {
+    const el = document.getElementById(containerId);
+    el.querySelectorAll('.error-box').forEach(e => e.remove());
+    const box = document.createElement('div');
+    box.className = 'error-box';
+    box.innerHTML = '⚠️ ' + msg;
+    el.prepend(box);
+}
+
+function retourAccueil() { location.reload(); }
+
+function checkPseudo() {
+    pseudo = document.getElementById('pseudo').value.trim();
+    if(!pseudo) { alert("Mets un pseudo !"); return false; }
+    return true;
+}
+
+// ── Navigation ───────────────────────────────────────────────────────────────
+function ouvrirSolo() {
+    if(!checkPseudo()) return;
+    mode = "solo";
+    document.getElementById('setup-title').innerText = "Choisir les catégories";
+    document.getElementById('room-name-input').classList.add('hidden');
+    document.getElementById('start-btn').textContent = "🎯 LANCER LA PARTIE";
+    show('setup'); genererCats();
+}
+
+function ouvrirCreateMulti() {
+    if(!checkPseudo()) return;
+    mode = "host";
+    document.getElementById('setup-title').innerText = "Créer une salle";
+    document.getElementById('room-name-input').classList.remove('hidden');
+    document.getElementById('start-btn').textContent = "CRÉER LA SALLE";
+    show('setup'); genererCats();
+}
+
+async function ouvrirLobby() {
+    if(!checkPseudo()) return;
+    show('lobby');
+    await chargerLobby();
+}
+
+// ── Lobby ────────────────────────────────────────────────────────────────────
+async function chargerLobby() {
+    const list = document.getElementById('room-list');
+    list.innerHTML = "<p style='padding:12px'>🔍 Recherche de parties...</p>";
+
+    const limite3h = new Date(Date.now() - 3*60*60*1000).toISOString();
+
+    try {
+        // Supprimer les vieilles salles
+        await dbDelete('partie_multi', { statut: 'eq.attente', created_at: `lt.${limite3h}` });
+
+        // Récupérer les salles valides
+        const data = await dbSelect('partie_multi', {
+            select: 'nom_partie,pseudo,created_at',
+            statut: 'eq.attente',
+            created_at: `gte.${limite3h}`,
+            order: 'created_at.desc'
+        });
+
+        list.innerHTML = "";
+
+        if(!data || data.length === 0) {
+            list.innerHTML = "<p style='padding:15px;color:#888'>Aucune salle disponible.</p>";
+            return;
+        }
+
+        // Dédoublonnage
+        const seen = new Map();
+        data.forEach(d => { if(!seen.has(d.nom_partie)) seen.set(d.nom_partie, d); });
+
+        seen.forEach((row, nom) => {
+            const date = new Date(row.created_at);
+            const dateStr = date.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+            const heureStr = date.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+            list.innerHTML += `
+                <div class="room-item">
+                    <div style="text-align:left">
+                        <div>Salle <b>${nom}</b> — par <b>${row.pseudo}</b></div>
+                        <div style="font-size:0.75rem;color:#888;margin-top:3px">🕐 ${dateStr} à ${heureStr}</div>
+                    </div>
+                    <button class="btn btn-success" onclick="rejoindreSalle('${nom}','${row.pseudo}')"
+                        style="width:auto;padding:6px 14px;flex-shrink:0;margin-bottom:0">Rejoindre</button>
+                </div>`;
+        });
+
+    } catch(err) {
+        list.innerHTML = `<div class="error-box" style="margin:10px">⚠️ ${err.message}</div>`;
+    }
+}
+
+// ── Catégories ───────────────────────────────────────────────────────────────
+function genererCats() {
+    cats = [];
+    const cList = ["Animal","Ville","Prénom","Métier","Pays","Fruit","Objet","Sport","Marque","Couleur","Célébrité","Film","Plat","Instrument","Outil","Plante","Vêtement","Verbe"];
+    const grid = document.getElementById('selection-grid');
+    grid.innerHTML = "";
+    cList.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'cat-card'; div.innerText = c;
+        div.onclick = () => {
+            if(cats.includes(c)) { cats=cats.filter(x=>x!==c); div.classList.remove('selected'); }
+            else if(cats.length<8) { cats.push(c); div.classList.add('selected'); }
+            document.getElementById('start-btn').disabled = cats.length===0;
+        };
+        grid.appendChild(div);
+    });
+    document.getElementById('start-btn').disabled = true;
+}
+
+// ── Valider setup (solo ou hôte) ─────────────────────────────────────────────
+async function validerSetup() {
+    if(mode === "solo") {
+        letter = "ABCDEFGHIJKLMNOPRST"[Math.floor(Math.random()*19)];
+        demarrerJeu(); return;
+    }
+
+    const btn = document.getElementById('start-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Création...';
+
+    room = document.getElementById('room-name-input').value.trim() || "SALLE";
+
+    try {
+        await dbInsert('partie_multi', { nom_partie: room, pseudo, statut: 'attente' });
+
+        document.getElementById('host-room-name').innerText = room;
+        document.getElementById('current-room-name').innerText = room;
+        document.getElementById('room-indicator').classList.remove('hidden');
+
+        joueurs = [{ pseudo, isHost: true }];
+        afficherJoueursHote();
+        show('host-waiting');
+        ouvrirChannelHote();
+
+    } catch(err) {
+        showError('setup', `Impossible de créer la salle : ${err.message}`);
+        btn.disabled = false;
+        btn.innerHTML = 'CRÉER LA SALLE';
+    }
+}
+
+// ── Channel hôte ─────────────────────────────────────────────────────────────
+function ouvrirChannelHote() {
+    if(channel) _supabase.removeChannel(channel);
+
+    channel = _supabase.channel(`room-${room}`, {
+        config: { broadcast: { self: false }, presence: { key: pseudo } }
+    });
+
+    channel.on('presence', { event: 'join' }, ({ newPresences }) => {
+        newPresences.forEach(p => {
+            if(!joueurs.find(j => j.pseudo === p.pseudo))
+                joueurs.push({ pseudo: p.pseudo, isHost: false });
+        });
+        afficherJoueursHote();
+    });
+
+    channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+        leftPresences.forEach(p => { joueurs = joueurs.filter(j => j.pseudo !== p.pseudo); });
+        afficherJoueursHote();
+    });
+
+    channel.subscribe(async (status) => {
+        if(status === 'SUBSCRIBED') {
+            await channel.track({ pseudo, isHost: true });
+        }
+    });
+}
+
+function afficherJoueursHote() {
+    document.getElementById('host-players-list').innerHTML = joueurs.map(j =>
+        `<div class="player-badge ${j.isHost?'host':''}">
+            ${j.isHost?'👑':'🎮'} ${j.pseudo}
+        </div>`).join('');
+    const btn = document.getElementById('host-launch-btn');
+    if(joueurs.length >= 2) {
+        btn.disabled = false;
+        btn.innerHTML = `🚀 LANCER LA PARTIE (${joueurs.length} joueurs)`;
+    } else {
+        btn.disabled = true;
+        btn.innerHTML = `⏳ En attente de joueurs... (${joueurs.length}/2 min)`;
+    }
+}
+
+// ── Rejoindre (guest) ────────────────────────────────────────────────────────
+function rejoindreSalle(nom, hostPseudo) {
+    room = nom; mode = "guest";
+    document.getElementById('current-room-name').innerText = nom;
+    document.getElementById('room-indicator').classList.remove('hidden');
+    joueurs = [{ pseudo: hostPseudo, isHost: true }];
+    afficherJoueursGuest();
+    show('guest-waiting');
+    ouvrirChannelGuest();
+}
+
+function ouvrirChannelGuest() {
+    if(channel) _supabase.removeChannel(channel);
+
+    channel = _supabase.channel(`room-${room}`, {
+        config: { broadcast: { self: false }, presence: { key: pseudo } }
+    });
+
+    channel.on('broadcast', { event: 'start' }, ({ payload }) => {
+        letter = payload.letter;
+        cats   = payload.cats;
+        demarrerJeu();
+    });
+
+    channel.on('presence', { event: 'join' }, ({ newPresences }) => {
+        newPresences.forEach(p => {
+            if(!joueurs.find(j => j.pseudo === p.pseudo))
+                joueurs.push({ pseudo: p.pseudo, isHost: p.isHost||false });
+        });
+        afficherJoueursGuest();
+    });
+
+    channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+        leftPresences.forEach(p => { joueurs = joueurs.filter(j => j.pseudo !== p.pseudo); });
+        afficherJoueursGuest();
+    });
+
+    channel.subscribe(async (status) => {
+        if(status === 'SUBSCRIBED') {
+            await channel.track({ pseudo, isHost: false });
+        } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            showError('guest-waiting', `Erreur Realtime (${status}). Vérifie que Supabase Realtime est activé sur ton projet.`);
+        }
+    });
+}
+
+function afficherJoueursGuest() {
+    document.getElementById('guest-players-list').innerHTML = joueurs.map(j =>
+        `<div class="player-badge ${j.isHost?'host':''}">
+            ${j.isHost?'👑':'🎮'} ${j.pseudo}${j.pseudo===pseudo?' (toi)':''}
+        </div>`).join('');
+}
+
+// ── Lancer la partie (hôte) ──────────────────────────────────────────────────
+async function lancerTopDepart() {
+    letter = "ABCDEFGHIJKLMNOPRST"[Math.floor(Math.random()*19)];
+
+    try {
+        // Signal broadcast vers les guests
+        await channel.send({ type: 'broadcast', event: 'start', payload: { letter, cats } });
+        // Mettre la salle en cours en base
+        await dbUpdate('partie_multi', { nom_partie: `eq.${room}` }, { statut: 'en_cours' });
+    } catch(err) {
+        // Non bloquant : on démarre quand même
+        console.warn("Erreur lancement:", err.message);
+    }
+
+    demarrerJeu();
+}
+
+// ── Annuler / Quitter ────────────────────────────────────────────────────────
+async function annulerSalle() {
+    try { await dbDelete('partie_multi', { nom_partie: `eq.${room}`, pseudo: `eq.${pseudo}` }); } catch(e){}
+    if(channel) { _supabase.removeChannel(channel); channel = null; }
+    retourAccueil();
+}
+
+function quitterSalle() {
+    if(channel) { _supabase.removeChannel(channel); channel = null; }
+    retourAccueil();
+}
+
+// ── Jeu ──────────────────────────────────────────────────────────────────────
+function demarrerJeu() {
+    timeLeft = 180;
+    clearInterval(timerInterval);
+    show('game');
+    document.getElementById('letter').innerText = letter;
+    const cont = document.getElementById('game-fields');
+    cont.innerHTML = "";
+    cats.forEach(c => {
+        cont.innerHTML += `<div class="game-field"><label>${c}</label><input type="text" class="player-word" placeholder="${letter}..."></div>`;
+    });
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        const m=Math.floor(timeLeft/60), s=timeLeft%60;
+        document.getElementById('timer').innerText = `${m}:${s<10?'0':''}${s}`;
+        if(timeLeft<=0) finirPartie();
+    }, 1000);
+}
+
+async function finirPartie() {
+    clearInterval(timerInterval);
+    const inputs = document.querySelectorAll('.player-word');
+    let mots=[], score=0;
+    inputs.forEach(i => {
+        const v=i.value.trim(); mots.push(v);
+        if(v.toLowerCase().startsWith(letter.toLowerCase()) && v.length>1) score++;
+    });
+
+    show('result');
+    document.getElementById('score-display').innerText = `${score} / ${cats.length}`;
+
+    const payload = {
+        pseudo, score,
+        nom_partie: room || "SOLO",
+        mot_1:mots[0]||"", mot_2:mots[1]||"", mot_3:mots[2]||"", mot_4:mots[3]||"",
+        mot_5:mots[4]||"", mot_6:mots[5]||"", mot_7:mots[6]||"", mot_8:mots[7]||""
+    };
+
+    try {
+        await dbInsert(mode==='solo' ? 'partie_solo' : 'partie_multi', payload);
+    } catch(err) {
+        console.warn("Erreur sauvegarde score:", err.message);
+    }
+
+    if(channel) { _supabase.removeChannel(channel); channel = null; }
+}
+</script>
+</body>
+</html>
