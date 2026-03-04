@@ -11,20 +11,20 @@
         .bg-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
         .floating-letter { position: absolute; font-weight: 900; color: rgba(52,152,219,0.15); animation: float infinite ease-in-out; }
         @keyframes float { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-20px) rotate(10deg)} }
-        .container { background: rgba(255,255,255,0.92); backdrop-filter: blur(5px); width: 95%; max-width: 550px; padding: 30px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); text-align: center; z-index: 10; max-height: 90vh; overflow-y: auto; }
+        .container { background: rgba(255,255,255,0.92); backdrop-filter: blur(5px); width: 95%; max-width: 620px; padding: 28px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); text-align: center; z-index: 10; max-height: 92vh; overflow-y: auto; }
         .room-header { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: var(--dark); color: white; padding: 5px 20px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; white-space: nowrap; }
         h1 { font-size: 2.5rem; color: var(--dark); margin-bottom: 20px; }
         h1 span { color: var(--primary); }
         .btn { padding: 14px 22px; border: none; border-radius: 12px; cursor: pointer; font-size: 1rem; font-weight: bold; transition: 0.2s; width: 100%; margin-bottom: 10px; }
         .btn:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-solo  { background: var(--primary); color: white; }
-        .btn-multi { background: #9b59b6; color: white; }
-        .btn-success { background: var(--success); color: white; }
-        .btn-danger  { background: var(--danger); color: white; }
-        .btn-grey    { background: #eee; color: #333; }
+        .btn-solo   { background: var(--primary); color: white; }
+        .btn-multi  { background: #9b59b6; color: white; }
+        .btn-success{ background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-grey   { background: #eee; color: #333; }
         .lobby-list { background:#fff; border:1px solid #ddd; border-radius:12px; max-height:220px; overflow-y:auto; margin:15px 0; }
-        .room-item { padding:12px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+        .room-item  { padding:12px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
         .room-item:last-child { border-bottom:none; }
         .room-item:hover { background:#f8f9fa; }
         .grid-selection { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin:15px 0; max-height:200px; overflow-y:auto; }
@@ -47,7 +47,57 @@
         .spinner { display:inline-block; width:16px; height:16px; border:3px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; margin-right:6px; }
         @keyframes spin { to{transform:rotate(360deg)} }
         .error-box { background:#fdecea; border:1px solid #e74c3c; color:#c0392b; border-radius:10px; padding:12px; margin:10px 0; font-size:0.88rem; text-align:left; word-break:break-word; }
-        .info-box { background:#eaf4fb; border:1px solid #3498db; color:#1a6a96; border-radius:10px; padding:10px 14px; margin:10px 0; font-size:0.85rem; }
+        .info-box   { background:#eaf4fb; border:1px solid #3498db; color:#1a6a96; border-radius:10px; padding:10px 14px; margin:10px 0; font-size:0.85rem; }
+
+        /* ── TABLEAU DES RÉSULTATS ── */
+        .result-header { display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:16px; }
+        .result-letter { font-size:3.5rem; font-weight:900; color:var(--primary); line-height:1; }
+        .result-title  { font-size:1.4rem; font-weight:bold; color:var(--dark); }
+        .scores-podium { display:flex; gap:10px; justify-content:center; margin-bottom:18px; flex-wrap:wrap; }
+        .podium-card { background:white; border-radius:14px; padding:10px 16px; min-width:90px; box-shadow:0 2px 8px rgba(0,0,0,0.08); border:2px solid #eee; }
+        .podium-card.first  { border-color:#f1c40f; background:#fffde7; }
+        .podium-card.second { border-color:#bdc3c7; background:#f9f9f9; }
+        .podium-card.third  { border-color:#e67e22; background:#fff5ec; }
+        .podium-rank  { font-size:1.4rem; }
+        .podium-name  { font-weight:bold; font-size:0.95rem; color:var(--dark); margin:2px 0; }
+        .podium-score { font-size:1.1rem; font-weight:900; color:var(--primary); }
+
+        .results-table { width:100%; border-collapse:collapse; font-size:0.88rem; margin-top:4px; }
+        .results-table th { background:var(--dark); color:white; padding:8px 6px; text-align:left; font-weight:600; }
+        .results-table th:first-child { border-radius:8px 0 0 0; }
+        .results-table th:last-child  { border-radius:0 8px 0 0; }
+        .results-table td { padding:7px 6px; border-bottom:1px solid #eee; text-align:left; vertical-align:middle; }
+        .results-table tr:last-child td { border-bottom:none; }
+        .results-table tr:hover td { background:#f8f9fa; }
+        .results-table .cat-col { font-weight:600; color:#555; background:#f8f9fa; }
+        .word-valid   { color:var(--success); font-weight:bold; }
+        .word-invalid { color:#bbb; font-style:italic; }
+        .word-empty   { color:#ddd; }
+        .score-badge  { display:inline-block; background:var(--primary); color:white; border-radius:10px; padding:2px 8px; font-weight:bold; font-size:0.85rem; }
+
+        /* attente résultats */
+        .waiting-results { padding:20px; }
+        .waiting-results .big-emoji { font-size:4rem; animation:pulse 1s infinite; }
+        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+
+        /* ── CONTESTATION ── */
+        .word-cell { position:relative; cursor:default; }
+        .word-cell.contestable { cursor:pointer; border-radius:6px; transition:background 0.15s; }
+        .word-cell.contestable:hover { background:rgba(231,76,60,0.08); }
+        .word-cell.conteste { background:rgba(231,76,60,0.15) !important; }
+        .word-cell.conteste .word-text { text-decoration:line-through; color:#e74c3c !important; }
+        .word-cell.annule { background:rgba(231,76,60,0.25) !important; }
+        .word-cell.annule .word-text { text-decoration:line-through; color:#e74c3c !important; font-weight:bold; }
+        .contest-icon { font-size:0.75rem; margin-left:3px; vertical-align:middle; }
+        .contest-phase-banner { background:#fff3cd; border:1px solid #ffc107; border-radius:10px; padding:10px 14px; margin:10px 0; font-size:0.88rem; color:#856404; }
+        .contest-timer { font-weight:bold; font-size:1rem; }
+        .time-picker { display:flex; align-items:center; justify-content:center; gap:12px; background:#f8f9fa; border-radius:12px; padding:12px 16px; margin:10px 0; }
+        .time-picker label { font-weight:bold; color:var(--dark); font-size:0.95rem; }
+        .time-btn { width:34px; height:34px; border:2px solid var(--primary); border-radius:8px; background:white; color:var(--primary); font-size:1.2rem; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.2s; padding:0; }
+        .time-btn:hover { background:var(--primary); color:white; }
+        .time-display { font-size:1.5rem; font-weight:900; color:var(--primary); min-width:50px; text-align:center; }
+        .waiting-contest { background:#f8f9fa; border-radius:10px; padding:8px 12px; margin:8px 0; font-size:0.85rem; color:#666; }
+        .podium-final { border-color:var(--success) !important; background:#eafaf1 !important; }
     </style>
 </head>
 <body>
@@ -59,8 +109,8 @@
 
     <!-- ACCUEIL -->
     <div id="home">
-        <input type="text" id="pseudo" placeholder="Ton pseudo...">
-        <div style="margin-top:10px;">
+        <input type="text" id="pseudo" placeholder="Ton pseudo..." oninput="sauverPseudo()">
+        <div style="margin-top:10px">
             <button class="btn btn-solo"  onclick="ouvrirSolo()">🎯 MODE SOLO</button>
             <button class="btn btn-multi" onclick="ouvrirCreateMulti()">➕ CRÉER UNE PARTIE</button>
             <button class="btn btn-grey"  onclick="ouvrirLobby()">🔍 REJOINDRE UNE PARTIE</button>
@@ -77,9 +127,15 @@
     <!-- SETUP -->
     <div id="setup" class="hidden">
         <h3 id="setup-title">Créer une salle</h3>
-        <input type="text" id="room-name-input" placeholder="Nom de la salle (ex: AMIS)">
+        <input type="text" id="room-name-input" placeholder="Nom de la salle">
         <div id="selection-grid" class="grid-selection"></div>
         <p style="color:#888;font-size:0.88rem;margin:4px 0">Sélectionne 1 à 8 catégories</p>
+        <div class="time-picker">
+            <label>⏱ Durée :</label>
+            <button class="time-btn" onclick="changerTemps(-1)">−</button>
+            <div class="time-display" id="time-display">3 min</div>
+            <button class="time-btn" onclick="changerTemps(+1)">+</button>
+        </div>
         <button id="start-btn" onclick="validerSetup()" disabled class="btn btn-multi">CRÉER LA SALLE</button>
     </div>
 
@@ -109,30 +165,49 @@
     <!-- JEU -->
     <div id="game" class="hidden">
         <div id="letter">-</div>
-        <div id="timer">03:00</div>
+        <div id="timer">--:--</div>
         <div id="game-fields"></div>
-        <button onclick="finirPartie()" class="btn btn-danger" style="margin-top:18px">🛑 STOP !</button>
+        <button onclick="stopPartie()" class="btn btn-danger" style="margin-top:18px">🛑 STOP !</button>
+    </div>
+
+    <!-- ATTENTE DES RÉSULTATS (multi) -->
+    <div id="waiting-results" class="hidden">
+        <div class="waiting-results">
+            <div class="big-emoji">⏳</div>
+            <h3>En attente des autres joueurs...</h3>
+            <p style="color:#888">Tes mots ont été envoyés !</p>
+        </div>
     </div>
 
     <!-- RÉSULTAT -->
     <div id="result" class="hidden">
-        <h2>✅ Score enregistré</h2>
-        <div style="font-size:3rem;font-weight:900;color:var(--primary)" id="score-display">0 / 0</div>
-        <button onclick="location.reload()" class="btn btn-solo" style="margin-top:20px">🔄 RETOUR AU MENU</button>
+        <div class="result-header">
+            <div class="result-letter" id="result-letter">-</div>
+            <div class="result-title" id="result-title">Résultats de la partie</div>
+        </div>
+        <div id="contest-banner" class="contest-phase-banner hidden"></div>
+        <div id="scores-podium" class="scores-podium"></div>
+        <div style="overflow-x:auto">
+            <table class="results-table" id="results-table"></table>
+        </div>
+        <div id="contest-actions" class="hidden" style="margin-top:12px">
+            <button onclick="validerContestations()" class="btn btn-success">✅ Valider mes contestations</button>
+        </div>
+        <div id="waiting-contest-div" class="waiting-contest hidden"></div>
+        <button id="btn-retour" onclick="location.reload()" class="btn btn-solo hidden" style="margin-top:18px">🔄 RETOUR AU MENU</button>
     </div>
 </div>
 
 <script>
 const SUPABASE_URL = "https://rntiiwtohwzsyzxnicxt.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJudGlpd3RvaHd6c3l6eG5pY3h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3ODM3MjgsImV4cCI6MjA4NTM1OTcyOH0.NV9KXoOnfnyKAqrZ4T_wc6g5D_Uh0p140UcsdBQ-ATs";
-
-// Client Supabase (version fixe 2.38.4 — stable, sans bug DataCloneError)
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ── Helpers DB ───────────────────────────────────────────────────────────────
+// ── Helpers DB ────────────────────────────────────────────────────────────────
 async function dbSelect(table, filters) {
     let q = _supabase.from(table).select(filters.select || '*');
-    if(filters.statut)     q = q.eq('statut',     filters.statut.replace('eq.',''));
+    if(filters.statut) q = q.eq('statut', filters.statut.replace('eq.',''));
+    if(filters.nom_partie) q = q.eq('nom_partie', filters.nom_partie.replace('eq.',''));
     if(filters.created_at) {
         if(filters.created_at.startsWith('gte.')) q = q.gte('created_at', filters.created_at.slice(4));
         if(filters.created_at.startsWith('lt.'))  q = q.lt('created_at',  filters.created_at.slice(3));
@@ -154,9 +229,7 @@ async function dbInsert(table, body) {
 
 async function dbUpdate(table, filters, body) {
     let q = _supabase.from(table).update(body);
-    Object.entries(filters).forEach(([k, v]) => {
-        q = q.eq(k, v.replace('eq.',''));
-    });
+    Object.entries(filters).forEach(([k, v]) => q = q.eq(k, String(v).replace('eq.','')));
     const { error } = await q;
     if(error) throw new Error(error.message);
     return true;
@@ -166,19 +239,44 @@ async function dbDelete(table, filters) {
     let q = _supabase.from(table).delete();
     Object.entries(filters).forEach(([k, v]) => {
         const val = String(v);
-        if(val.startsWith('eq.'))  q = q.eq(k,  val.slice(3));
-        if(val.startsWith('lt.'))  q = q.lt(k,  val.slice(3));
-        if(val.startsWith('gte.')) q = q.gte(k, val.slice(4));
+        if(val.startsWith('eq.'))  q = q.eq(k, val.slice(3));
+        else if(val.startsWith('lt.'))  q = q.lt(k, val.slice(3));
+        else if(val.startsWith('gte.')) q = q.gte(k, val.slice(4));
+        else q = q.eq(k, val);
     });
     const { error } = await q;
     if(error) throw new Error(error.message);
     return true;
 }
-// ────────────────────────────────────────────────────────────────────────────
 
+// ── Persistance pseudo ───────────────────────────────────────────────────────
+function sauverPseudo() {
+    const v = document.getElementById('pseudo').value.trim();
+    if(v) localStorage.setItem('baccalaureline_pseudo', v);
+}
+window.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('baccalaureline_pseudo');
+    if(saved) document.getElementById('pseudo').value = saved;
+});
+
+// ── État global ───────────────────────────────────────────────────────────────
 let mode = "", room = "", channel = null;
 let cats = [], letter = "", timerInterval, timeLeft = 180;
+let dureeMinutes = 3; // durée choisie par l'hôte/solo
 let pseudo = "", joueurs = [];
+// Résultats collectés en multi (indexed by pseudo)
+let resultatsJoueurs = {};
+let nbJoueursPartie = 0;
+let partieTerminee = false;
+// Contestation
+let contestPhase = false;          // phase de contestation active
+let mesContestations = new Set();  // clés "pseudoCible|catIdx" contestées par moi
+let contestationsReçues = {};      // { pseudo: Set{clés} } de chaque joueur
+let nbJoueursContestants = 0;
+let contestChannel = null;
+let resultatsFinaux = [];          // copie des résultats pour recalcul
+let catsFinales = [];
+let lettreFinale = "";
 
 // Fond animé
 const bg = document.getElementById('bg-letters');
@@ -190,9 +288,9 @@ for(let i=0;i<40;i++){
     bg.appendChild(s);
 }
 
-// ── UI helpers ───────────────────────────────────────────────────────────────
+// ── UI ────────────────────────────────────────────────────────────────────────
 function show(id) {
-    ['home','lobby','setup','host-waiting','guest-waiting','game','result']
+    ['home','lobby','setup','host-waiting','guest-waiting','game','waiting-results','result']
         .forEach(d => document.getElementById(d).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
 }
@@ -214,7 +312,7 @@ function checkPseudo() {
     return true;
 }
 
-// ── Navigation ───────────────────────────────────────────────────────────────
+// ── Navigation ────────────────────────────────────────────────────────────────
 function ouvrirSolo() {
     if(!checkPseudo()) return;
     mode = "solo";
@@ -229,6 +327,7 @@ function ouvrirCreateMulti() {
     mode = "host";
     document.getElementById('setup-title').innerText = "Créer une salle";
     document.getElementById('room-name-input').classList.remove('hidden');
+    document.getElementById('room-name-input').value = `Room de ${pseudo}`;
     document.getElementById('start-btn').textContent = "CRÉER LA SALLE";
     show('setup'); genererCats();
 }
@@ -239,18 +338,16 @@ async function ouvrirLobby() {
     await chargerLobby();
 }
 
-// ── Lobby ────────────────────────────────────────────────────────────────────
+// ── Lobby ─────────────────────────────────────────────────────────────────────
 async function chargerLobby() {
     const list = document.getElementById('room-list');
     list.innerHTML = "<p style='padding:12px'>🔍 Recherche de parties...</p>";
-
     const limite3h = new Date(Date.now() - 3*60*60*1000).toISOString();
-
     try {
-        // Supprimer les vieilles salles
-        await dbDelete('partie_multi', { statut: 'eq.attente', created_at: `lt.${limite3h}` });
+        // Supprimer les vieilles salles et les salles terminées
+        await dbDelete('partie_multi', { statut: 'eq.attente',   created_at: `lt.${limite3h}` });
+        await dbDelete('partie_multi', { statut: 'eq.terminee',  created_at: `lt.${limite3h}` });
 
-        // Récupérer les salles valides
         const data = await dbSelect('partie_multi', {
             select: 'nom_partie,pseudo,created_at',
             statut: 'eq.attente',
@@ -259,19 +356,15 @@ async function chargerLobby() {
         });
 
         list.innerHTML = "";
-
         if(!data || data.length === 0) {
             list.innerHTML = "<p style='padding:15px;color:#888'>Aucune salle disponible.</p>";
             return;
         }
-
-        // Dédoublonnage
         const seen = new Map();
         data.forEach(d => { if(!seen.has(d.nom_partie)) seen.set(d.nom_partie, d); });
-
         seen.forEach((row, nom) => {
             const date = new Date(row.created_at);
-            const dateStr = date.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+            const dateStr  = date.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
             const heureStr = date.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
             list.innerHTML += `
                 <div class="room-item">
@@ -283,16 +376,15 @@ async function chargerLobby() {
                         style="width:auto;padding:6px 14px;flex-shrink:0;margin-bottom:0">Rejoindre</button>
                 </div>`;
         });
-
     } catch(err) {
         list.innerHTML = `<div class="error-box" style="margin:10px">⚠️ ${err.message}</div>`;
     }
 }
 
-// ── Catégories ───────────────────────────────────────────────────────────────
+// ── Catégories ────────────────────────────────────────────────────────────────
 function genererCats() {
     cats = [];
-    const cList = ["Animal","Ville","Prénom","Métier","Pays","Fruit","Objet","Sport","Marque","Couleur","Célébrité","Film","Plat","Instrument","Outil","Plante","Vêtement","Verbe"];
+    const cList = ["Animal","Ville","Prénom","Métier","Pays","Fruit","Objet","Sport","Marque","Couleur","Célébrité","Film","Plat","Instrument","Outil","Plante","Vêtement","Verbe","Bible"];
     const grid = document.getElementById('selection-grid');
     grid.innerHTML = "";
     cList.forEach(c => {
@@ -308,31 +400,31 @@ function genererCats() {
     document.getElementById('start-btn').disabled = true;
 }
 
-// ── Valider setup (solo ou hôte) ─────────────────────────────────────────────
+// ── Sélecteur de durée ───────────────────────────────────────────────────────
+function changerTemps(delta) {
+    dureeMinutes = Math.max(1, Math.min(10, dureeMinutes + delta));
+    document.getElementById('time-display').innerText = dureeMinutes + ' min';
+}
+
+// ── Valider setup ─────────────────────────────────────────────────────────────
 async function validerSetup() {
     if(mode === "solo") {
         letter = "ABCDEFGHIJKLMNOPRST"[Math.floor(Math.random()*19)];
         demarrerJeu(); return;
     }
-
     const btn = document.getElementById('start-btn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Création...';
-
     room = document.getElementById('room-name-input').value.trim() || "SALLE";
-
     try {
         await dbInsert('partie_multi', { nom_partie: room, pseudo, statut: 'attente' });
-
         document.getElementById('host-room-name').innerText = room;
         document.getElementById('current-room-name').innerText = room;
         document.getElementById('room-indicator').classList.remove('hidden');
-
         joueurs = [{ pseudo, isHost: true }];
         afficherJoueursHote();
         show('host-waiting');
         ouvrirChannelHote();
-
     } catch(err) {
         showError('setup', `Impossible de créer la salle : ${err.message}`);
         btn.disabled = false;
@@ -340,12 +432,27 @@ async function validerSetup() {
     }
 }
 
-// ── Channel hôte ─────────────────────────────────────────────────────────────
+// ── Channel hôte ──────────────────────────────────────────────────────────────
 function ouvrirChannelHote() {
     if(channel) _supabase.removeChannel(channel);
-
     channel = _supabase.channel(`room-${room}`, {
         config: { broadcast: { self: false }, presence: { key: pseudo } }
+    });
+
+    // Recevoir le signal stop d'un guest → l'hôte stoppe aussi
+    channel.on('broadcast', { event: 'stop' }, () => {
+        if(!partieTerminee) stopPartie(false);
+    });
+
+    // Recevoir les mots d'un joueur quand il stoppe
+    channel.on('broadcast', { event: 'mots' }, ({ payload }) => {
+        resultatsJoueurs[payload.pseudo] = payload;
+        verifierTousReçus();
+    });
+
+    // Recevoir une contestation d'un autre joueur
+    channel.on('broadcast', { event: 'contest' }, ({ payload }) => {
+        recevoirContestation(payload.pseudo, payload.contestations);
     });
 
     channel.on('presence', { event: 'join' }, ({ newPresences }) => {
@@ -355,16 +462,12 @@ function ouvrirChannelHote() {
         });
         afficherJoueursHote();
     });
-
     channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
         leftPresences.forEach(p => { joueurs = joueurs.filter(j => j.pseudo !== p.pseudo); });
         afficherJoueursHote();
     });
-
     channel.subscribe(async (status) => {
-        if(status === 'SUBSCRIBED') {
-            await channel.track({ pseudo, isHost: true });
-        }
+        if(status === 'SUBSCRIBED') await channel.track({ pseudo, isHost: true });
     });
 }
 
@@ -383,7 +486,7 @@ function afficherJoueursHote() {
     }
 }
 
-// ── Rejoindre (guest) ────────────────────────────────────────────────────────
+// ── Rejoindre (guest) ─────────────────────────────────────────────────────────
 function rejoindreSalle(nom, hostPseudo) {
     room = nom; mode = "guest";
     document.getElementById('current-room-name').innerText = nom;
@@ -396,15 +499,35 @@ function rejoindreSalle(nom, hostPseudo) {
 
 function ouvrirChannelGuest() {
     if(channel) _supabase.removeChannel(channel);
-
     channel = _supabase.channel(`room-${room}`, {
         config: { broadcast: { self: false }, presence: { key: pseudo } }
     });
 
     channel.on('broadcast', { event: 'start' }, ({ payload }) => {
-        letter = payload.letter;
-        cats   = payload.cats;
+        letter = payload.letter; cats = payload.cats;
+        nbJoueursPartie = payload.nbJoueurs || 2;
+        dureeMinutes = payload.duree || 3;
         demarrerJeu();
+    });
+
+    // Recevoir le signal stop d'un autre joueur → stopper aussi
+    channel.on('broadcast', { event: 'stop' }, () => {
+        if(!partieTerminee) stopPartie(false); // false = pas l'initiateur
+    });
+
+    // Recevoir les mots de tous pour afficher le tableau
+    channel.on('broadcast', { event: 'resultats' }, ({ payload }) => {
+        afficherResultats(payload.resultats, payload.cats, payload.letter);
+    });
+
+    // Recevoir une contestation d'un autre joueur
+    channel.on('broadcast', { event: 'contest' }, ({ payload }) => {
+        recevoirContestation(payload.pseudo, payload.contestations);
+    });
+
+    // Recevoir les scores finaux après contestation
+    channel.on('broadcast', { event: 'scores-finaux' }, ({ payload }) => {
+        afficherScoresFinaux(payload.resultats, payload.cats, payload.letter);
     });
 
     channel.on('presence', { event: 'join' }, ({ newPresences }) => {
@@ -414,17 +537,15 @@ function ouvrirChannelGuest() {
         });
         afficherJoueursGuest();
     });
-
     channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
         leftPresences.forEach(p => { joueurs = joueurs.filter(j => j.pseudo !== p.pseudo); });
         afficherJoueursGuest();
     });
-
     channel.subscribe(async (status) => {
         if(status === 'SUBSCRIBED') {
             await channel.track({ pseudo, isHost: false });
         } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            showError('guest-waiting', `Erreur Realtime (${status}). Vérifie que Supabase Realtime est activé sur ton projet.`);
+            showError('guest-waiting', `Erreur Realtime (${status}). Vérifie que Supabase Realtime est activé.`);
         }
     });
 }
@@ -436,38 +557,34 @@ function afficherJoueursGuest() {
         </div>`).join('');
 }
 
-// ── Lancer la partie (hôte) ──────────────────────────────────────────────────
+// ── Lancer la partie (hôte) ───────────────────────────────────────────────────
 async function lancerTopDepart() {
     letter = "ABCDEFGHIJKLMNOPRST"[Math.floor(Math.random()*19)];
-
+    nbJoueursPartie = joueurs.length;
+    resultatsJoueurs = {};
+    partieTerminee = false;
     try {
-        // Signal broadcast vers les guests
-        await channel.send({ type: 'broadcast', event: 'start', payload: { letter, cats } });
-        // Mettre la salle en cours en base
+        await channel.send({ type:'broadcast', event:'start', payload:{ letter, cats, nbJoueurs: nbJoueursPartie, duree: dureeMinutes } });
         await dbUpdate('partie_multi', { nom_partie: `eq.${room}` }, { statut: 'en_cours' });
-    } catch(err) {
-        // Non bloquant : on démarre quand même
-        console.warn("Erreur lancement:", err.message);
-    }
-
+    } catch(err) { console.warn("Erreur lancement:", err.message); }
     demarrerJeu();
 }
 
-// ── Annuler / Quitter ────────────────────────────────────────────────────────
+// ── Annuler / Quitter ─────────────────────────────────────────────────────────
 async function annulerSalle() {
     try { await dbDelete('partie_multi', { nom_partie: `eq.${room}`, pseudo: `eq.${pseudo}` }); } catch(e){}
     if(channel) { _supabase.removeChannel(channel); channel = null; }
     retourAccueil();
 }
-
 function quitterSalle() {
     if(channel) { _supabase.removeChannel(channel); channel = null; }
     retourAccueil();
 }
 
-// ── Jeu ──────────────────────────────────────────────────────────────────────
+// ── Jeu ───────────────────────────────────────────────────────────────────────
 function demarrerJeu() {
-    timeLeft = 180;
+    timeLeft = dureeMinutes * 60;
+    partieTerminee = false;
     clearInterval(timerInterval);
     show('game');
     document.getElementById('letter').innerText = letter;
@@ -480,36 +597,299 @@ function demarrerJeu() {
         timeLeft--;
         const m=Math.floor(timeLeft/60), s=timeLeft%60;
         document.getElementById('timer').innerText = `${m}:${s<10?'0':''}${s}`;
-        if(timeLeft<=0) finirPartie();
+        if(timeLeft<=0) stopPartie(true);
     }, 1000);
 }
 
-async function finirPartie() {
+// ── STOP : appelé par le bouton ou le timer ───────────────────────────────────
+async function stopPartie(estInitiateur = true) {
+    if(partieTerminee) return;
+    partieTerminee = true;
     clearInterval(timerInterval);
+
+    // Collecter ses propres mots
     const inputs = document.querySelectorAll('.player-word');
-    let mots=[], score=0;
+    let mots = [], score = 0;
     inputs.forEach(i => {
-        const v=i.value.trim(); mots.push(v);
-        if(v.toLowerCase().startsWith(letter.toLowerCase()) && v.length>1) score++;
+        const v = i.value.trim(); mots.push(v);
+        if(v.toLowerCase().startsWith(letter.toLowerCase()) && v.length > 1) score++;
     });
 
-    show('result');
-    document.getElementById('score-display').innerText = `${score} / ${cats.length}`;
+    const tempsEcoule = dureeMinutes * 60 - timeLeft;
+    const monResultat = { pseudo, score, mots, temps: tempsEcoule };
 
-    const payload = {
-        pseudo, score,
-        nom_partie: room || "SOLO",
-        mot_1:mots[0]||"", mot_2:mots[1]||"", mot_3:mots[2]||"", mot_4:mots[3]||"",
-        mot_5:mots[4]||"", mot_6:mots[5]||"", mot_7:mots[6]||"", mot_8:mots[7]||""
-    };
-
-    try {
-        await dbInsert(mode==='solo' ? 'partie_solo' : 'partie_multi', payload);
-    } catch(err) {
-        console.warn("Erreur sauvegarde score:", err.message);
+    if(mode === 'solo') {
+        // Solo : affichage direct
+        const seulResultat = [monResultat];
+        afficherResultats(seulResultat, cats, letter);
+        // Sauvegarde
+        try {
+            await dbInsert('partie_solo', {
+                pseudo, score, nom_partie: "SOLO",
+                mot_1:mots[0]||"", mot_2:mots[1]||"", mot_3:mots[2]||"",
+                mot_4:mots[3]||"", mot_5:mots[4]||"", mot_6:mots[5]||"",
+                mot_7:mots[6]||"", mot_8:mots[7]||""
+            });
+        } catch(e) {}
+        return;
     }
 
-    if(channel) { _supabase.removeChannel(channel); channel = null; }
+    // Multi : enregistrer ses mots et attendre les autres
+    resultatsJoueurs[pseudo] = monResultat;
+    show('waiting-results');
+
+    if(estInitiateur && channel) {
+        // Prévenir les autres de stopper (fonctionne pour host ET guest)
+        try { await channel.send({ type:'broadcast', event:'stop', payload:{ stoppeur: pseudo } }); } catch(e){}
+    }
+
+    // Sauvegarder en base
+    try {
+        await dbInsert('partie_multi', {
+            pseudo, score, nom_partie: room,
+            mot_1:mots[0]||"", mot_2:mots[1]||"", mot_3:mots[2]||"",
+            mot_4:mots[3]||"", mot_5:mots[4]||"", mot_6:mots[5]||"",
+            mot_7:mots[6]||"", mot_8:mots[7]||""
+        });
+    } catch(e) {}
+
+    // Envoyer ses mots aux autres via broadcast
+    if(channel) {
+        try { await channel.send({ type:'broadcast', event:'mots', payload: monResultat }); } catch(e){}
+    }
+
+    verifierTousReçus();
+}
+
+// ── Vérifier si tous les joueurs ont envoyé leurs mots ───────────────────────
+async function verifierTousReçus() {
+    const nbReçus = Object.keys(resultatsJoueurs).length;
+    if(nbReçus >= nbJoueursPartie) {
+        const tousResultats = Object.values(resultatsJoueurs);
+
+        // L'hôte diffuse les résultats consolidés à tous
+        if(mode === 'host' && channel) {
+            try {
+                await channel.send({ type:'broadcast', event:'resultats', payload:{ resultats: tousResultats, cats, letter } });
+            } catch(e){}
+        }
+
+        // Marquer la salle comme terminée et nettoyer le lobby
+        if(mode === 'host') {
+            try { await dbUpdate('partie_multi', { nom_partie: `eq.${room}` }, { statut: 'terminee' }); } catch(e){}
+        }
+
+        afficherResultats(tousResultats, cats, letter);
+        if(channel) { _supabase.removeChannel(channel); channel = null; }
+    }
+}
+
+// ── Afficher le tableau des résultats (phase 1 : contestation) ───────────────
+function afficherResultats(resultats, categoriesList, lettreTiree) {
+    show('result');
+    resultatsFinaux = resultats;
+    catsFinales = categoriesList;
+    lettreFinale = lettreTiree;
+    mesContestations = new Set();
+
+    document.getElementById('result-letter').innerText = lettreTiree;
+    document.getElementById('result-title').innerText = 'Résultats de la partie';
+
+    renderTableau(resultats, categoriesList, lettreTiree, false);
+
+    // Phase contestation seulement en multi
+    if(mode !== 'solo' && resultats.length > 1) {
+        contestPhase = true;
+        nbJoueursContestants = resultats.length;
+        contestationsReçues = {};
+        document.getElementById('contest-banner').classList.remove('hidden');
+        document.getElementById('contest-banner').innerHTML =
+            "🗳️ <b>Phase de contestation</b> — Clique sur les mots adverses avec lesquels tu n'es pas d'accord. Valide quand tu as terminé.";
+        document.getElementById('contest-actions').classList.remove('hidden');
+        document.getElementById('btn-retour').classList.add('hidden');
+    } else {
+        document.getElementById('btn-retour').classList.remove('hidden');
+    }
+}
+
+// ── Rendu du tableau (réutilisable) ─────────────────────────────────────────
+function renderTableau(resultats, categoriesList, lettreTiree, finale, motsCanceles) {
+    motsCanceles = motsCanceles || new Set();
+    const tries = [...resultats].sort((a,b) => b.score - a.score);
+
+    // Podium
+    const medailles = ['🥇','🥈','🥉'];
+    const classes   = ['first','second','third'];
+    const podiumEl  = document.getElementById('scores-podium');
+    podiumEl.innerHTML = tries.map((r, i) => {
+        const tps = r.temps != null ? r.temps : null;
+        const tpsStr = (i === 0 && tps != null)
+            ? `<div style="font-size:0.75rem;color:#888;margin-top:2px">⏱ ${Math.floor(tps/60)}:${String(tps%60).padStart(2,'0')}</div>`
+            : '';
+        return `<div class="podium-card ${classes[i]||""} ${finale?"podium-final":""}">
+            <div class="podium-rank">${medailles[i] || '#'+(i+1)}</div>
+            <div class="podium-name">${r.pseudo}</div>
+            <div class="podium-score">${r.score}/${categoriesList.length}</div>
+            ${tpsStr}
+        </div>`;
+    }).join('');
+
+    const table = document.getElementById('results-table');
+    let thead = `<thead><tr><th>Catégorie</th>${tries.map(r =>
+        `<th>${r.pseudo}${r.pseudo===pseudo?' (toi)':''}</th>`).join('')}</tr></thead>`;
+
+    let tbody = '<tbody>';
+    categoriesList.forEach((cat, idx) => {
+        tbody += `<tr><td class="cat-col">${cat}</td>`;
+        tries.forEach(r => {
+            const mot = (r.mots && r.mots[idx]) ? r.mots[idx] : '';
+            const valide = mot && mot.toLowerCase().startsWith(lettreTiree.toLowerCase()) && mot.length > 1;
+            const key = `${r.pseudo}|${idx}`;
+            const estAnnule = motsCanceles.has(key);
+            const estConteste = mesContestations.has(key);
+            const estMoi = (r.pseudo === pseudo);
+
+            let cls = mot ? (valide ? 'word-valid' : 'word-invalid') : 'word-empty';
+            let extraCls = estAnnule ? ' annule' : (estConteste ? ' conteste' : '');
+            let icon = estConteste ? '<span class="contest-icon">🚩</span>' : (estAnnule ? '<span class="contest-icon">❌</span>' : '');
+
+            // On peut contester : mots valides des adversaires (pas les siens)
+            const peutContester = !estMoi && valide && contestPhase && !finale;
+            const clickAttr = peutContester
+                ? `onclick="toggleContestation('${r.pseudo}', ${idx}, this)"` : '';
+
+            tbody += `<td class="word-cell ${peutContester?'contestable':''} ${extraCls}" ${clickAttr}>
+                <span class="word-text ${cls}">${mot || '—'}</span>${icon}
+            </td>`;
+        });
+        tbody += '</tr>';
+    });
+
+    // Ligne score
+    tbody += `<tr style="font-weight:bold;background:#f0f4f8"><td class="cat-col">SCORE</td>`;
+    tries.forEach(r => {
+        tbody += `<td><span class="score-badge">${r.score}/${categoriesList.length}</span></td>`;
+    });
+    tbody += '</tr></tbody>';
+
+    table.innerHTML = thead + tbody;
+}
+
+// ── Toggler une contestation ─────────────────────────────────────────────────
+function toggleContestation(ciblePseudo, catIdx, cellEl) {
+    if(!contestPhase) return;
+    const key = `${ciblePseudo}|${catIdx}`;
+    const cell = cellEl.closest('td');
+    if(mesContestations.has(key)) {
+        mesContestations.delete(key);
+        cell.classList.remove('conteste');
+        cell.querySelector('.contest-icon')?.remove();
+    } else {
+        mesContestations.add(key);
+        cell.classList.add('conteste');
+        if(!cell.querySelector('.contest-icon')) {
+            const ico = document.createElement('span');
+            ico.className = 'contest-icon'; ico.innerText = '🚩';
+            cell.appendChild(ico);
+        }
+    }
+}
+
+// ── Valider et envoyer ses contestations ─────────────────────────────────────
+async function validerContestations() {
+    contestPhase = false;
+    document.getElementById('contest-actions').classList.add('hidden');
+    document.getElementById('contest-banner').innerHTML =
+        '⏳ En attente des contestations des autres joueurs...';
+
+    // Enregistrer les siennes
+    recevoirContestation(pseudo, Array.from(mesContestations));
+
+    // Broadcaster ses contestations
+    if(channel) {
+        try {
+            await channel.send({ type:'broadcast', event:'contest', payload:{
+                pseudo, contestations: Array.from(mesContestations)
+            }});
+        } catch(e){}
+    }
+
+    document.getElementById('waiting-contest-div').classList.remove('hidden');
+    document.getElementById('waiting-contest-div').innerText =
+        `✅ Tes contestations envoyées — en attente des autres...`;
+}
+
+// ── Recevoir une contestation d'un autre joueur ──────────────────────────────
+function recevoirContestation(joueurPseudo, contestationsArray) {
+    contestationsReçues[joueurPseudo] = new Set(contestationsArray);
+
+    const nbReçus = Object.keys(contestationsReçues).length;
+    if(nbReçus < nbJoueursContestants) {
+        document.getElementById('waiting-contest-div').classList.remove('hidden');
+        document.getElementById('waiting-contest-div').innerText =
+            `⏳ Contestations reçues : ${nbReçus}/${nbJoueursContestants}`;
+        return;
+    }
+
+    // Tout le monde a voté → calculer les mots annulés
+    // Un mot est annulé si TOUS les autres joueurs (sauf le propriétaire) l'ont contesté
+    const motsCanceles = new Set();
+    const joueursPseudos = resultatsFinaux.map(r => r.pseudo);
+
+    catsFinales.forEach((cat, idx) => {
+        joueursPseudos.forEach(ciblePseudo => {
+            // Les autres joueurs (pas le propriétaire du mot)
+            const autres = joueursPseudos.filter(p => p !== ciblePseudo);
+            if(autres.length === 0) return;
+            const key = `${ciblePseudo}|${idx}`;
+            const tousConteste = autres.every(p =>
+                contestationsReçues[p] && contestationsReçues[p].has(key)
+            );
+            if(tousConteste) motsCanceles.add(key);
+        });
+    });
+
+    // Recalculer les scores
+    const resultatsAjustes = resultatsFinaux.map(r => {
+        let newScore = 0;
+        catsFinales.forEach((cat, idx) => {
+            const mot = r.mots && r.mots[idx] ? r.mots[idx] : '';
+            const valide = mot && mot.toLowerCase().startsWith(lettreFinale.toLowerCase()) && mot.length > 1;
+            const key = `${r.pseudo}|${idx}`;
+            if(valide && !motsCanceles.has(key)) newScore++;
+        });
+        return { ...r, score: newScore };
+    });
+
+    // L'hôte diffuse les scores finaux
+    if(mode === 'host' && channel) {
+        try {
+            channel.send({ type:'broadcast', event:'scores-finaux', payload:{
+                resultats: resultatsAjustes,
+                cats: catsFinales,
+                letter: lettreFinale,
+                motsCanceles: Array.from(motsCanceles)
+            }});
+        } catch(e){}
+    }
+
+    afficherScoresFinaux(resultatsAjustes, catsFinales, lettreFinale, motsCanceles);
+}
+
+// ── Afficher les scores finaux après contestation ────────────────────────────
+function afficherScoresFinaux(resultats, categoriesList, lettreTiree, motsCanceles) {
+    // Si on reçoit depuis broadcast, motsCanceles vient en array
+    if(Array.isArray(motsCanceles)) motsCanceles = new Set(motsCanceles);
+    else if(!motsCanceles) motsCanceles = new Set();
+
+    contestPhase = false;
+    document.getElementById('contest-banner').classList.add('hidden');
+    document.getElementById('contest-actions').classList.add('hidden');
+    document.getElementById('waiting-contest-div').classList.add('hidden');
+    document.getElementById('result-title').innerText = '🏆 Scores finaux';
+    document.getElementById('btn-retour').classList.remove('hidden');
+
+    renderTableau(resultats, categoriesList, lettreTiree, true, motsCanceles);
 }
 </script>
 </body>
