@@ -426,6 +426,47 @@ function changerTemps(delta) {
     document.getElementById('time-display').innerText = dureeMinutes + ' min';
 }
 
+// ── Nettoyage salles orphelines ───────────────────────────────────────────────
+async function nettoyerSallesOrphelines() {
+    try {
+        // Chercher toutes les salles créées par ce pseudo (en attente ou terminée)
+        const existantes = await dbSelect('partie_multi', {
+            select: 'nom_partie,statut,created_at',
+            order: 'created_at.desc'
+        });
+        if(!existantes || !existantes.length) return;
+
+        // Grouper par nom de salle
+        const sallesParNom = {};
+        existantes.forEach(r => {
+            if(!sallesParNom[r.nom_partie]) sallesParNom[r.nom_partie] = [];
+            sallesParNom[r.nom_partie].push(r);
+        });
+
+        // Pour chaque salle dont je suis l'hôte (pseudo === mon pseudo)
+        // → vérifier si elle est orpheline (statut attente sans activité récente, ou terminée)
+        const mesHostSalles = existantes.filter(r => r.pseudo === pseudo);
+        const nomsASupprimer = new Set();
+
+        mesHostSalles.forEach(r => {
+            if(r.statut === 'attente' || r.statut === 'terminee') {
+                nomsASupprimer.add(r.nom_partie);
+            }
+            // Salle en cours depuis plus de 4h → considérée abandonnée
+            if(r.statut === 'en_cours') {
+                const age = Date.now() - new Date(r.created_at).getTime();
+                if(age > 4 * 60 * 60 * 1000) nomsASupprimer.add(r.nom_partie);
+            }
+        });
+
+        for(const nom of nomsASupprimer) {
+            try { await dbDelete('partie_multi', { nom_partie:'eq.'+nom }); } catch(e){}
+        }
+    } catch(e) {
+        console.warn('nettoyage orphelines:', e.message);
+    }
+}
+
 // ── Setup ─────────────────────────────────────────────────────────────────────
 async function validerSetup() {
     if(mode === "solo") {
@@ -434,9 +475,13 @@ async function validerSetup() {
     }
     const btn = document.getElementById('start-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Création...';
+    btn.innerHTML = '<span class="spinner"></span>Vérification...';
     room = document.getElementById('room-name-input').value.trim() || "SALLE";
     try {
+        // Supprimer toutes les salles existantes créées par ce pseudo
+        // (salles en attente ou terminées — pas celles "en_cours" qui ont encore des joueurs)
+        await nettoyerSallesOrphelines();
+        btn.innerHTML = '<span class="spinner"></span>Création...';
         await dbInsert('partie_multi', { nom_partie:room, pseudo, statut:'attente' });
         document.getElementById('host-room-name').innerText = room;
         document.getElementById('current-room-name').innerText = room;
@@ -889,10 +934,18 @@ function traiterContestation2Joueurs() {
     // => Chacun vote sur SES propres mots contestés, puis on échange les votes
 
     const motsMisEnCauseDeMoi = Array.from(contestsAdverse).filter(k => k.startsWith(pseudo + '|'));
+    const motsMisEnCauseAdverse = Array.from(contestsMoi).filter(k => k.startsWith(adversaire + '|'));
     mesVotes2J = {};
 
+    // Cas simple : personne ne conteste rien → finaliser directement
+    if(contestsAdverse.size === 0 && contestsMoi.size === 0) {
+        diffuserEtAfficherFinaux(new Set());
+        return;
+    }
+
     if(motsMisEnCauseDeMoi.length === 0) {
-        // L'adversaire ne conteste rien de moi → je vote d'emblée vide
+        // L'adversaire ne conteste aucun de MES mots (il conteste peut-être les siens)
+        // → j'envoie mes votes vides et j'attends les siens
         envoyerMesVotes2J();
         return;
     }
