@@ -121,12 +121,72 @@
         .end-btns { display:flex; gap:10px; margin-top:14px; }
         .end-btns .btn { margin-bottom:0; flex:1; }
 
+        /* ── SCORES ── */
+        .btn-scores { background:linear-gradient(135deg,#f39c12,#e67e22); color:white; }
+        .scores-tabs { display:flex; gap:8px; margin:12px 0; }
+        .scores-tab { flex:1; padding:8px; border:2px solid #eee; border-radius:10px; background:white; cursor:pointer; font-weight:bold; font-size:0.9rem; color:#888; transition:0.2s; }
+        .scores-tab.active { border-color:var(--primary); color:var(--primary); background:#eaf4fb; }
+        .scores-list { max-height:340px; overflow-y:auto; }
+        .score-row { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #f0f0f0; }
+        .score-row:last-child { border-bottom:none; }
+        .score-row:hover { background:#f8f9fa; border-radius:8px; }
+        .score-row-left { display:flex; align-items:center; gap:10px; }
+        .score-rank { font-size:1.2rem; min-width:28px; text-align:center; }
+        .score-pseudo { font-weight:bold; color:var(--dark); font-size:0.95rem; }
+        .score-meta { font-size:0.75rem; color:#aaa; margin-top:1px; }
+        .score-pts { font-size:1.1rem; font-weight:900; color:var(--primary); white-space:nowrap; }
+        .score-empty { color:#bbb; font-size:0.9rem; padding:20px; text-align:center; }
+        .scores-filter { display:flex; align-items:center; gap:8px; margin:8px 0; }
+        .scores-filter input { flex:1; padding:8px 12px; font-size:0.9rem; margin-bottom:0; }
+
         /* time picker */
         .time-picker { display:flex; align-items:center; justify-content:center; gap:12px; background:#f8f9fa; border-radius:12px; padding:12px 16px; margin:10px 0; }
         .time-picker label { font-weight:bold; color:var(--dark); font-size:0.95rem; }
         .time-btn { width:34px; height:34px; border:2px solid var(--primary); border-radius:8px; background:white; color:var(--primary); font-size:1.2rem; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.2s; padding:0; }
         .time-btn:hover { background:var(--primary); color:white; }
         .time-display { font-size:1.5rem; font-weight:900; color:var(--primary); min-width:50px; text-align:center; }
+
+        /* ── MODES SOLO ── */
+        .solo-mode-grid { display:grid; grid-template-columns:1fr; gap:12px; margin:16px 0; }
+        .solo-mode-card { border:2px solid #eee; border-radius:16px; padding:16px; cursor:pointer; background:white; transition:0.2s; text-align:left; display:flex; align-items:center; gap:14px; }
+        .solo-mode-card:hover { border-color:#3498db; background:#eaf4fb; transform:translateY(-2px); box-shadow:0 4px 14px rgba(52,152,219,0.15); }
+        .solo-mode-icon { font-size:2.4rem; flex-shrink:0; }
+        .solo-mode-info h4 { margin:0 0 4px 0; font-size:1.05rem; color:var(--dark); }
+        .solo-mode-info p { margin:0; font-size:0.82rem; color:#888; line-height:1.4; }
+        .solo-mode-badge { display:inline-block; background:var(--primary); color:white; border-radius:8px; padding:2px 8px; font-size:0.75rem; font-weight:bold; margin-top:5px; }
+        .solo-mode-card.blitz .solo-mode-icon { filter: drop-shadow(0 0 4px #f39c12); }
+        .solo-mode-card.blitz { border-color:#f39c12; }
+        .solo-mode-card.blitz:hover { background:#fff8e7; border-color:#f39c12; }
+        .solo-mode-card.sprint .solo-mode-icon { filter: drop-shadow(0 0 4px #3498db); }
+        .solo-mode-card.survival .solo-mode-icon { filter: drop-shadow(0 0 4px #e74c3c); }
+        .solo-mode-card.survival { border-color:#e74c3c; }
+        .solo-mode-card.survival:hover { background:#fdecea; border-color:#e74c3c; }
+        .solo-mode-card.blitz .solo-mode-badge { background:#f39c12; }
+        .solo-mode-card.survival .solo-mode-badge { background:#e74c3c; }
+
+        /* Vies (mode survie) */
+        .lives-bar { display:flex; gap:6px; align-items:center; justify-content:center; font-size:1.6rem; margin-bottom:4px; }
+        .life { transition:all 0.3s; }
+        .life.lost { filter:grayscale(1); opacity:0.25; transform:scale(0.8); }
+
+        /* Grilles complétées (modes chrono) */
+        .grilles-bar { display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:4px; }
+        .grilles-count { font-size:1.6rem; font-weight:900; color:var(--success); }
+        .grilles-label { font-size:0.85rem; color:#888; }
+
+        /* Animation erreur survie */
+        @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+        .shake { animation:shake 0.4s ease; }
+        @keyframes wrongFlash { 0%{background:rgba(231,76,60,0.15)} 100%{background:transparent} }
+        .wrong-flash { animation:wrongFlash 0.5s ease; }
+
+        /* Résultat solo enrichi */
+        .solo-result-box { background:linear-gradient(135deg,#eaf4fb,#f0f9ff); border:2px solid var(--primary); border-radius:16px; padding:18px; margin:14px 0; text-align:center; }
+        .solo-result-box.survie { background:linear-gradient(135deg,#fdecea,#fff5f5); border-color:var(--danger); }
+        .solo-result-mode { font-size:0.85rem; color:#888; font-weight:bold; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+        .solo-result-big { font-size:3rem; font-weight:900; color:var(--primary); line-height:1; }
+        .solo-result-big.survie { color:var(--danger); }
+        .solo-result-sub { font-size:0.95rem; color:#555; margin-top:6px; }
     </style>
 </head>
 <body>
@@ -144,12 +204,46 @@
             <button class="btn btn-multi" onclick="ouvrirCreateMulti()">&#10133; CRÉER UNE PARTIE</button>
             <button class="btn btn-grey"  onclick="ouvrirLobby()">&#128269; REJOINDRE UNE PARTIE</button>
         </div>
+        <button class="btn btn-scores" onclick="ouvrirScores()" style="margin-top:6px">🏆 SCORES</button>
         <button id="btn-install" class="btn btn-install hidden" onclick="installerApp()" style="margin-top:6px">
             &#128242; Installer sur mon téléphone
         </button>
         <p id="ios-hint" class="ios-hint hidden">
             Sur iPhone : appuie sur <b>&#11014; Partager</b> puis <b>"Sur l'écran d'accueil"</b>
         </p>
+    </div>
+
+    <!-- CHOIX MODE SOLO -->
+    <div id="solo-mode-select" class="hidden">
+        <h3>🎯 Mode Solo</h3>
+        <p style="color:#888;font-size:0.88rem;margin:0 0 10px 0">Choisis ton défi !</p>
+        <div class="solo-mode-grid">
+            <div class="solo-mode-card blitz" onclick="choisirModeSolo('blitz')">
+                <div class="solo-mode-icon">⚡</div>
+                <div class="solo-mode-info">
+                    <h4>Blitz — 3 minutes</h4>
+                    <p>Remplis un maximum de grilles en 3 minutes. Chaque grille complétée = nouvelle lettre !</p>
+                    <span class="solo-mode-badge">RECORD DE GRILLES</span>
+                </div>
+            </div>
+            <div class="solo-mode-card sprint" onclick="choisirModeSolo('sprint')">
+                <div class="solo-mode-icon">🏃</div>
+                <div class="solo-mode-info">
+                    <h4>Sprint — 5 minutes</h4>
+                    <p>Plus de temps pour peaufiner. Enchaîne les grilles sur 5 minutes chrono !</p>
+                    <span class="solo-mode-badge" style="background:#3498db">MARATHON DE MOTS</span>
+                </div>
+            </div>
+            <div class="solo-mode-card survival" onclick="choisirModeSolo('survival')">
+                <div class="solo-mode-icon">❤️</div>
+                <div class="solo-mode-info">
+                    <h4>Survie — 5 vies</h4>
+                    <p>Pas de limite de temps, mais chaque mot invalide te coûte une vie. Tiens le plus longtemps possible !</p>
+                    <span class="solo-mode-badge">5 VIES</span>
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-grey" onclick="retourAccueil()">← RETOUR</button>
     </div>
 
     <!-- LOBBY -->
@@ -159,13 +253,29 @@
         <button class="btn btn-grey" onclick="retourAccueil()">← RETOUR</button>
     </div>
 
+    <!-- SCORES -->
+    <div id="scores" class="hidden">
+        <h3>🏆 Tableau des scores</h3>
+        <div class="scores-tabs">
+            <button class="scores-tab active" onclick="switchScoresTab('solo',this)">🎯 Solo</button>
+            <button class="scores-tab" onclick="switchScoresTab('multi',this)">🎮 Multijoueur</button>
+        </div>
+        <div class="scores-filter">
+            <input type="text" id="scores-search" placeholder="🔍 Filtrer par pseudo..." oninput="filtrerScores()">
+        </div>
+        <div id="scores-list" class="scores-list">
+            <div class="score-empty">Chargement...</div>
+        </div>
+        <button class="btn btn-grey" onclick="retourAccueil()" style="margin-top:14px">← RETOUR</button>
+    </div>
+
     <!-- SETUP -->
     <div id="setup" class="hidden">
         <h3 id="setup-title">Créer une salle</h3>
         <input type="text" id="room-name-input" placeholder="Nom de la salle">
         <div id="selection-grid" class="grid-selection"></div>
         <p style="color:#888;font-size:0.88rem;margin:4px 0">Sélectionne 1 à 8 catégories</p>
-        <div class="time-picker">
+        <div class="time-picker" id="time-picker-div">
             <label>⏱ Durée :</label>
             <button class="time-btn" onclick="changerTemps(-1)">−</button>
             <div class="time-display" id="time-display">3 min</div>
@@ -199,10 +309,15 @@
 
     <!-- JEU -->
     <div id="game" class="hidden">
+        <!-- Barre de statut solo (vies ou grilles) -->
+        <div id="solo-status-bar" class="hidden" style="margin-bottom:10px;padding:8px 12px;background:#f8f9fa;border-radius:12px;border:1px solid #eee;"></div>
         <div id="letter">-</div>
         <div id="timer">--:--</div>
         <div id="game-fields"></div>
-        <button onclick="stopPartie(true)" class="btn btn-danger" style="margin-top:18px">🛑 STOP !</button>
+        <div style="display:flex;gap:10px;margin-top:18px">
+            <button id="stop-btn" onclick="stopPartie(true)" class="btn btn-danger" style="flex:1;margin-bottom:0">🛑 STOP !</button>
+            <button id="valider-grille-btn" onclick="validerGrille()" class="btn btn-success hidden" style="flex:1;margin-bottom:0">✅ VALIDER LA GRILLE</button>
+        </div>
     </div>
 
     <!-- ATTENTE DES RÉSULTATS (multi) -->
@@ -352,6 +467,12 @@ let resultatsJoueurs = {};
 let nbJoueursPartie = 0;
 let partieTerminee = false;
 
+// Solo modes
+let soloModeJeu = 'blitz'; // 'blitz' | 'sprint' | 'survival'
+let soloVies = 5;
+let soloGrilles = 0;       // nombre de grilles complétées
+let soloScoreTotal = 0;    // points cumulés sur toutes les grilles
+
 // Contestation
 let contestPhase = false;
 let mesContestations = new Set();
@@ -380,7 +501,7 @@ for(let i=0;i<40;i++){
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
 function show(id) {
-    ['home','lobby','setup','host-waiting','guest-waiting','game','waiting-results','result']
+    ['home','lobby','scores','setup','solo-mode-select','host-waiting','guest-waiting','game','waiting-results','result']
         .forEach(d => document.getElementById(d).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
 }
@@ -403,9 +524,16 @@ function checkPseudo() {
 function ouvrirSolo() {
     if(!checkPseudo()) return;
     mode = "solo";
+    show('solo-mode-select');
+}
+function choisirModeSolo(modeJeu) {
+    soloModeJeu = modeJeu;
     document.getElementById('setup-title').innerText = "Choisir les catégories";
     document.getElementById('room-name-input').classList.add('hidden');
-    document.getElementById('start-btn').textContent = "🎯 LANCER LA PARTIE";
+    const labels = { blitz:'⚡ LANCER BLITZ (3 min)', sprint:'🏃 LANCER SPRINT (5 min)', survival:'❤️ LANCER SURVIE' };
+    document.getElementById('start-btn').textContent = labels[modeJeu];
+    // Masquer le time picker en solo (la durée est fixée par le mode)
+    document.getElementById('time-picker-div').classList.add('hidden');
     show('setup'); genererCats();
 }
 function ouvrirCreateMulti() {
@@ -415,6 +543,7 @@ function ouvrirCreateMulti() {
     document.getElementById('room-name-input').classList.remove('hidden');
     document.getElementById('room-name-input').value = "Room de " + pseudo;
     document.getElementById('start-btn').textContent = "CRÉER LA SALLE";
+    document.getElementById('time-picker-div').classList.remove('hidden');
     show('setup'); genererCats();
 }
 async function ouvrirLobby() {
@@ -485,6 +614,137 @@ function changerTemps(delta) {
     document.getElementById('time-display').innerText = dureeMinutes + ' min';
 }
 
+
+// ── Scores ────────────────────────────────────────────────────────────────────
+let scoresData = { solo: [], multi: [] };
+let scoresTab = 'solo';
+
+async function ouvrirScores() {
+    show('scores');
+    document.getElementById('scores-search').value = '';
+    document.getElementById('scores-list').innerHTML = '<div class="score-empty">⏳ Chargement...</div>';
+    try {
+        // Charger les deux tables en parallèle
+        const [dataSolo, dataMulti] = await Promise.all([
+            dbSelect('partie_solo', { order:'created_at.desc' }).catch(() => []),
+            dbSelect('partie_multi', { order:'created_at.desc' }).catch(() => [])
+        ]);
+
+        // Solo : une ligne = une partie
+        scoresData.solo = (dataSolo || [])
+            .filter(r => r.pseudo && r.score != null)
+            .map(r => ({
+                pseudo: r.pseudo,
+                score: r.score,
+                total: null,
+                date: r.created_at,
+                label: r.nom_partie || 'Solo'
+            }))
+            .sort((a,b) => b.score - a.score);
+
+        // Multi : regrouper par partie (nom_partie + date proche) et calculer scores
+        // On prend toutes les lignes avec un vrai score de jeu (statut != attente)
+        const multiJeux = (dataMulti || []).filter(r =>
+            r.pseudo && r.score != null && r.statut !== 'attente'
+        );
+
+        // Regrouper par session : même nom_partie, créé dans la même heure
+        const sessions = {};
+        multiJeux.forEach(r => {
+            const heure = new Date(r.created_at);
+            heure.setMinutes(0,0,0);
+            const key = r.nom_partie + '|' + heure.toISOString();
+            if(!sessions[key]) sessions[key] = { nom: r.nom_partie, date: r.created_at, joueurs: [] };
+            // Éviter les doublons de pseudo dans la même session
+            if(!sessions[key].joueurs.find(j => j.pseudo === r.pseudo)) {
+                sessions[key].joueurs.push({ pseudo: r.pseudo, score: r.score });
+            }
+        });
+
+        // Aplatir en lignes de classement
+        const lignesMulti = [];
+        Object.values(sessions).forEach(sess => {
+            const tries = [...sess.joueurs].sort((a,b) => b.score - a.score);
+            tries.forEach((j, idx) => {
+                lignesMulti.push({
+                    pseudo: j.pseudo,
+                    score: j.score,
+                    rang: idx + 1,
+                    totalJoueurs: tries.length,
+                    date: sess.date,
+                    label: sess.nom
+                });
+            });
+        });
+        lignesMulti.sort((a,b) => b.score - a.score);
+        scoresData.multi = lignesMulti;
+
+        afficherScoresList();
+    } catch(err) {
+        document.getElementById('scores-list').innerHTML =
+            '<div class="score-empty">⚠️ Erreur : ' + err.message + '</div>';
+    }
+}
+
+function switchScoresTab(tab, btn) {
+    scoresTab = tab;
+    document.querySelectorAll('.scores-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('scores-search').value = '';
+    afficherScoresList();
+}
+
+function filtrerScores() {
+    afficherScoresList();
+}
+
+function afficherScoresList() {
+    const search = document.getElementById('scores-search').value.trim().toLowerCase();
+    const data = scoresData[scoresTab];
+    const filtered = search
+        ? data.filter(r => r.pseudo.toLowerCase().includes(search))
+        : data;
+
+    if(!filtered.length) {
+        document.getElementById('scores-list').innerHTML =
+            '<div class="score-empty">Aucun score enregistré.</div>';
+        return;
+    }
+
+    const medals = ['🥇','🥈','🥉'];
+    let html = '';
+
+    filtered.slice(0, 100).forEach((r, i) => {
+        const d = new Date(r.date);
+        const dateStr = d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'});
+        const heureStr = d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+
+        let rank, meta;
+        if(scoresTab === 'solo') {
+            rank = medals[i] || '<span style="font-size:0.85rem;color:#bbb">#' + (i+1) + '</span>';
+            meta = r.label + ' · ' + dateStr + ' ' + heureStr;
+        } else {
+            rank = medals[r.rang-1] || '<span style="font-size:0.85rem;color:#bbb">' + r.rang + 'e</span>';
+            meta = r.label + ' (' + r.totalJoueurs + ' joueurs) · ' + dateStr + ' ' + heureStr;
+        }
+
+        html += '<div class="score-row">'
+            + '<div class="score-row-left">'
+            + '<div class="score-rank">' + rank + '</div>'
+            + '<div><div class="score-pseudo">' + r.pseudo + '</div>'
+            + '<div class="score-meta">' + meta + '</div></div>'
+            + '</div>'
+            + '<div class="score-pts">' + r.score + ' pts</div>'
+            + '</div>';
+    });
+
+    if(filtered.length > 100) {
+        html += '<div class="score-empty" style="font-size:0.8rem">+ ' + (filtered.length-100) + ' autres résultats — affine ta recherche</div>';
+    }
+
+    document.getElementById('scores-list').innerHTML = html;
+}
+
 // ── Nettoyage salles orphelines ───────────────────────────────────────────────
 async function nettoyerSallesOrphelines() {
     try {
@@ -529,7 +789,15 @@ async function nettoyerSallesOrphelines() {
 // ── Setup ─────────────────────────────────────────────────────────────────────
 async function validerSetup() {
     if(mode === "solo") {
-        letter = "ABCDEFGHIJKLMNOPRST"[Math.floor(Math.random()*19)];
+        // Durée selon le mode
+        if(soloModeJeu === 'blitz') dureeMinutes = 3;
+        else if(soloModeJeu === 'sprint') dureeMinutes = 5;
+        else dureeMinutes = 0; // survie = pas de timer
+
+        soloGrilles = 0;
+        soloScoreTotal = 0;
+        soloVies = 5;
+        letter = tirerLettre();
         demarrerJeu(); return;
     }
     const btn = document.getElementById('start-btn');
@@ -712,31 +980,81 @@ function quitterSalle() {
     retourAccueil();
 }
 
+function tirerLettre() {
+    return "ABCDEFGHIJKLMNOPRST"[Math.floor(Math.random()*19)];
+}
+
 // ── Jeu ───────────────────────────────────────────────────────────────────────
 function demarrerJeu() {
-    timeLeft = dureeMinutes * 60;
+    // En blitz/sprint, si une grille est déjà en cours, on conserve le temps restant
+    const isNewGame = (soloGrilles === 0 || mode !== 'solo' || soloModeJeu === 'survival');
+    if(isNewGame) timeLeft = dureeMinutes * 60;
     partieTerminee = false;
     clearInterval(timerInterval);
     show('game');
     document.getElementById('letter').innerText = letter;
+
+    // Indicateur de mode solo dans le header du jeu
+    const soloBar = document.getElementById('solo-status-bar');
+    if(mode === 'solo') {
+        soloBar.classList.remove('hidden');
+        majSoloBar();
+    } else {
+        soloBar.classList.add('hidden');
+    }
+
     const cont = document.getElementById('game-fields');
     cont.innerHTML = "";
     cats.forEach(c => {
         cont.innerHTML += `<div class="game-field"><label>${c}</label><input type="text" class="player-word" placeholder="${letter}..."></div>`;
     });
-    timerInterval = setInterval(() => {
-        timeLeft--;
-        const m = Math.floor(timeLeft/60), s = timeLeft%60;
-        document.getElementById('timer').innerText = m + ':' + (s<10?'0':'') + s;
-        if(timeLeft <= 0) stopPartie(true);
-    }, 1000);
+
+    if(soloModeJeu === 'survival' && mode === 'solo') {
+        // Pas de timer affiché, bouton valider grille
+        document.getElementById('timer').innerText = '∞';
+        document.getElementById('stop-btn').classList.add('hidden');
+        document.getElementById('valider-grille-btn').classList.remove('hidden');
+    } else if(mode === 'solo') {
+        // Modes blitz/sprint : bouton valider grille + timer
+        document.getElementById('stop-btn').classList.add('hidden');
+        document.getElementById('valider-grille-btn').classList.remove('hidden');
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            const m = Math.floor(timeLeft/60), s = timeLeft%60;
+            document.getElementById('timer').innerText = m + ':' + (s<10?'0':'') + s;
+            if(timeLeft <= 0) stopPartie(true);
+        }, 1000);
+    } else {
+        document.getElementById('stop-btn').classList.remove('hidden');
+        document.getElementById('valider-grille-btn').classList.add('hidden');
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            const m = Math.floor(timeLeft/60), s = timeLeft%60;
+            document.getElementById('timer').innerText = m + ':' + (s<10?'0':'') + s;
+            if(timeLeft <= 0) stopPartie(true);
+        }, 1000);
+    }
+}
+
+function majSoloBar() {
+    const bar = document.getElementById('solo-status-bar');
+    if(soloModeJeu === 'survival') {
+        bar.innerHTML = `<div class="lives-bar">${Array.from({length:5},(_,i)=>`<span class="life${i>=soloVies?' lost':''}">❤️</span>`).join('')}</div>
+            <div style="font-size:0.8rem;color:#888">${soloVies} vie${soloVies>1?'s':''} restante${soloVies>1?'s':''}</div>`;
+    } else {
+        bar.innerHTML = `<div class="grilles-bar"><span class="grilles-count">${soloGrilles}</span><span class="grilles-label"> grille${soloGrilles>1?'s':''} complétée${soloGrilles>1?'s':''}</span></div>
+            <div style="font-size:0.8rem;color:#888">${soloScoreTotal} point${soloScoreTotal>1?'s':''} au total</div>`;
+    }
+}
+
+function validerGrille() {
+    // Validation manuelle d'une grille en mode solo
+    stopPartie(false);
 }
 
 // ── Stop ──────────────────────────────────────────────────────────────────────
 async function stopPartie(estInitiateur) {
     if(partieTerminee) return;
-    partieTerminee = true;
-    clearInterval(timerInterval);
 
     const inputs = document.querySelectorAll('.player-word');
     let mots = [], score = 0;
@@ -745,21 +1063,64 @@ async function stopPartie(estInitiateur) {
         if(v.toLowerCase().startsWith(letter.toLowerCase()) && v.length > 1) score++;
     });
     const tempsEcoule = dureeMinutes * 60 - timeLeft;
-    const monResultat = { pseudo, score, mots, temps:tempsEcoule };
+    const monResultat = { pseudo, score, mots, temps: tempsEcoule };
 
     if(mode === 'solo') {
-        afficherResultats([monResultat], cats, letter);
-        try {
-            await dbInsert('partie_solo', {
-                pseudo, score, nom_partie:"SOLO",
-                mot_1:mots[0]||"", mot_2:mots[1]||"", mot_3:mots[2]||"",
-                mot_4:mots[3]||"", mot_5:mots[4]||"", mot_6:mots[5]||"",
-                mot_7:mots[6]||"", mot_8:mots[7]||""
+        if(soloModeJeu === 'survival') {
+            // Compter les mots invalides
+            let nbInvalides = 0;
+            mots.forEach(m => {
+                if(m.length > 0 && !(m.toLowerCase().startsWith(letter.toLowerCase()) && m.length > 1)) nbInvalides++;
             });
-        } catch(e){}
+
+            if(nbInvalides > 0 && soloVies > 0) {
+                // Perdre des vies, animer
+                const oldVies = soloVies;
+                soloVies = Math.max(0, soloVies - nbInvalides);
+                majSoloBar();
+                // Flash rouge
+                document.querySelector('.container').classList.add('wrong-flash');
+                setTimeout(() => document.querySelector('.container').classList.remove('wrong-flash'), 500);
+            }
+
+            if(soloVies <= 0) {
+                // Game over survie
+                partieTerminee = true;
+                clearInterval(timerInterval);
+                soloScoreTotal += score;
+                afficherResultatSoloFinal();
+                try { await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:'SOLO-SURVIE', mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' }); } catch(e){}
+            } else {
+                // Valider grille et continuer (estInitiateur=false car bouton manuel)
+                soloScoreTotal += score;
+                soloGrilles++;
+                letter = tirerLettre();
+                demarrerJeu();
+            }
+        } else {
+            // Mode Blitz ou Sprint : valider la grille et continuer si temps restant
+            if(!estInitiateur) {
+                // C'est le joueur qui valide manuellement → nouvelle lettre
+                clearInterval(timerInterval);
+                soloScoreTotal += score;
+                soloGrilles++;
+                letter = tirerLettre();
+                demarrerJeu(); // reprend avec le temps restant
+            } else {
+                // Le temps est écoulé → résultats finaux
+                partieTerminee = true;
+                soloScoreTotal += score;
+                soloGrilles++;
+                afficherResultatSoloFinal();
+                const nomPartie = soloModeJeu === 'blitz' ? 'SOLO-BLITZ' : 'SOLO-SPRINT';
+                try { await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:nomPartie, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' }); } catch(e){}
+            }
+        }
         return;
     }
 
+    partieTerminee = true;
+    clearInterval(timerInterval);
     resultatsJoueurs[pseudo] = monResultat;
     show('waiting-results');
 
@@ -778,6 +1139,57 @@ async function stopPartie(estInitiateur) {
         try { await channel.send({ type:'broadcast', event:'mots', payload:monResultat }); } catch(e){}
     }
     verifierTousRecus();
+}
+
+function afficherResultatSoloFinal() {
+    show('result');
+    document.getElementById('result-letter').innerText = letter;
+
+    const modeLabels = { blitz:'⚡ Blitz 3 min', sprint:'🏃 Sprint 5 min', survival:'❤️ Mode Survie' };
+    document.getElementById('result-title').innerText = modeLabels[soloModeJeu] || 'Résultats';
+
+    document.getElementById('contest-banner').classList.add('hidden');
+    document.getElementById('contest-actions').classList.add('hidden');
+    document.getElementById('vote-banner').classList.add('hidden');
+    document.getElementById('waiting-contest-div').classList.add('hidden');
+    document.getElementById('end-btns').classList.add('hidden');
+    document.getElementById('scores-podium').innerHTML = '';
+
+    let html = '';
+    if(soloModeJeu === 'survival') {
+        html = `<div class="solo-result-box survie">
+            <div class="solo-result-mode">❤️ Mode Survie — Game Over !</div>
+            <div class="solo-result-big survie">${soloGrilles}</div>
+            <div class="solo-result-sub">grille${soloGrilles>1?'s':''} complétée${soloGrilles>1?'s':''}</div>
+            <div style="margin-top:8px;font-size:1.1rem;font-weight:bold;color:#e74c3c">${soloScoreTotal} points au total</div>
+        </div>`;
+    } else {
+        const label = soloModeJeu === 'blitz' ? '⚡ Blitz 3 minutes' : '🏃 Sprint 5 minutes';
+        html = `<div class="solo-result-box">
+            <div class="solo-result-mode">${label}</div>
+            <div class="solo-result-big">${soloGrilles}</div>
+            <div class="solo-result-sub">grille${soloGrilles>1?'s':''} complétée${soloGrilles>1?'s':''}</div>
+            <div style="margin-top:8px;font-size:1.1rem;font-weight:bold;color:var(--primary)">${soloScoreTotal} points au total</div>
+        </div>`;
+    }
+    document.getElementById('results-table').innerHTML = html;
+
+    const eb = document.getElementById('end-btns');
+    eb.classList.remove('hidden');
+    eb.innerHTML = `<button onclick="rejouerSolo()" class="btn btn-success" style="flex:1;margin-bottom:0">🔄 REJOUER</button>
+        <button onclick="location.reload()" class="btn btn-grey" style="flex:1;margin-bottom:0">🚪 QUITTER</button>`;
+}
+
+function rejouerSolo() {
+    soloGrilles = 0;
+    soloScoreTotal = 0;
+    soloVies = 5;
+    if(soloModeJeu === 'blitz') dureeMinutes = 3;
+    else if(soloModeJeu === 'sprint') dureeMinutes = 5;
+    else dureeMinutes = 0;
+    letter = tirerLettre();
+    partieTerminee = false;
+    demarrerJeu();
 }
 
 // ── Vérifier si tous les mots sont reçus ─────────────────────────────────────
