@@ -760,6 +760,7 @@ async function ouvrirScores() {
                 pseudo: r.pseudo,
                 score: r.score,
                 total: null,
+                nbMots: r.nb_mots || null,
                 date: r.created_at,
                 label: r.nom_partie || 'Solo'
             }))
@@ -845,7 +846,8 @@ function afficherScoresList() {
         let rank, meta;
         if(scoresTab === 'solo') {
             rank = medals[i] || '<span style="font-size:0.85rem;color:#bbb">#' + (i+1) + '</span>';
-            meta = r.label + ' · ' + dateStr + ' ' + heureStr;
+            const nbMotsStr = r.nbMots ? ' · ' + r.nbMots + ' catégorie' + (r.nbMots > 1 ? 's' : '') : '';
+            meta = r.label + nbMotsStr + ' · ' + dateStr + ' ' + heureStr;
         } else {
             rank = medals[r.rang-1] || '<span style="font-size:0.85rem;color:#bbb">' + r.rang + 'e</span>';
             meta = r.label + ' (' + r.totalJoueurs + ' joueurs) · ' + dateStr + ' ' + heureStr;
@@ -1212,7 +1214,12 @@ async function stopPartie(estInitiateur) {
                 clearInterval(timerInterval);
                 soloScoreTotal += score;
                 afficherResultatSoloFinal();
-                try { await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:'SOLO-SURVIE', mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' }); } catch(e){}
+                try {
+                    await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:'SOLO-SURVIE', nb_mots:cats.length, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' });
+                } catch(e) {
+                    console.error('Erreur sauvegarde score solo (survie):', e.message);
+                    alert('⚠️ Score non sauvegardé : ' + e.message);
+                }
             } else {
                 // Valider grille et continuer (estInitiateur=false car bouton manuel)
                 soloScoreTotal += score;
@@ -1236,7 +1243,12 @@ async function stopPartie(estInitiateur) {
                 soloGrilles++;
                 afficherResultatSoloFinal();
                 const nomPartie = soloModeJeu === 'blitz' ? 'SOLO-BLITZ' : 'SOLO-SPRINT';
-                try { await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:nomPartie, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' }); } catch(e){}
+                try {
+                    await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:nomPartie, nb_mots:cats.length, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' });
+                } catch(e) {
+                    console.error('Erreur sauvegarde score solo (' + nomPartie + '):', e.message);
+                    alert('⚠️ Score non sauvegardé : ' + e.message);
+                }
             }
         }
         return;
