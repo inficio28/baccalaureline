@@ -957,6 +957,19 @@ function ouvrirChannelHote() {
         entrerEnAttenteRejouer();
     });
 
+    // sync : reconstruit la liste complète à chaque (re)connexion
+    channel.on('presence', { event:'sync' }, () => {
+        const state = channel.presenceState();
+        const pseudosPresents = Object.values(state).flat().map(p => p.pseudo).filter(Boolean);
+        // Ajouter les joueurs manquants
+        pseudosPresents.forEach(p => {
+            if(!joueurs.find(j => j.pseudo === p))
+                joueurs.push({ pseudo:p, isHost:false });
+        });
+        // Retirer les joueurs partis
+        joueurs = joueurs.filter(j => j.isHost || pseudosPresents.includes(j.pseudo));
+        afficherJoueursHote();
+    });
     channel.on('presence', { event:'join' }, ({ newPresences }) => {
         newPresences.forEach(p => {
             if(!joueurs.find(j => j.pseudo===p.pseudo))
@@ -1031,6 +1044,15 @@ function ouvrirChannelGuest() {
         entrerEnAttenteRejouer();
     });
 
+    // sync : reconstruit la liste complète à chaque (re)connexion
+    channel.on('presence', { event:'sync' }, () => {
+        const state = channel.presenceState();
+        Object.values(state).flat().forEach(p => {
+            if(p.pseudo && !joueurs.find(j => j.pseudo === p.pseudo))
+                joueurs.push({ pseudo:p.pseudo, isHost:p.isHost||false });
+        });
+        afficherJoueursGuest();
+    });
     channel.on('presence', { event:'join' }, ({ newPresences }) => {
         newPresences.forEach(p => {
             if(!joueurs.find(j => j.pseudo===p.pseudo))
