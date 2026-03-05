@@ -654,35 +654,36 @@ async function chargerLobby() {
         await Promise.all([...seen.entries()].map(([nom, row]) => {
             return new Promise(resolve => {
                 let resolved = false;
+                let presenceDetectee = false;
                 const ch = _supabase.channel('room-' + nom, { config:{ presence:{ key:'_check' } } });
+
                 const timeout = setTimeout(async () => {
                     if(resolved) return;
                     resolved = true;
                     _supabase.removeChannel(ch);
-                    // Personne dans la salle → supprimer et ignorer
-                    try { await dbDelete('partie_multi', { nom_partie:'eq.'+nom }); } catch(e){}
+                    if(presenceDetectee) {
+                        // On a eu un sync mais sans joueurs → salle vide
+                        try { await dbDelete('partie_multi', { nom_partie:'eq.'+nom }); } catch(e){}
+                    } else {
+                        // Pas de réponse Realtime du tout → on garde la salle par précaution
+                        sallesActives.push(row);
+                    }
                     resolve(null);
-                }, 2500);
+                }, 5000); // 5 secondes au lieu de 2,5
 
                 ch.on('presence', { event:'sync' }, () => {
                     if(resolved) return;
+                    presenceDetectee = true;
                     const state = ch.presenceState();
                     const nbPresents = Object.keys(state).filter(k => k !== '_check').length;
                     if(nbPresents > 0) {
                         sallesActives.push(row);
-                    } else {
-                        // Salle vide → supprimer
                         clearTimeout(timeout);
                         resolved = true;
                         _supabase.removeChannel(ch);
-                        dbDelete('partie_multi', { nom_partie:'eq.'+nom }).catch(()=>{});
                         resolve(null);
-                        return;
                     }
-                    clearTimeout(timeout);
-                    resolved = true;
-                    _supabase.removeChannel(ch);
-                    resolve(null);
+                    // Si nbPresents === 0, on attend encore jusqu'au timeout
                 });
                 ch.subscribe();
             });
@@ -760,7 +761,6 @@ async function ouvrirScores() {
                 pseudo: r.pseudo,
                 score: r.score,
                 total: null,
-                nbMots: r.nb_mots || null,
                 date: r.created_at,
                 label: r.nom_partie || 'Solo'
             }))
@@ -846,8 +846,7 @@ function afficherScoresList() {
         let rank, meta;
         if(scoresTab === 'solo') {
             rank = medals[i] || '<span style="font-size:0.85rem;color:#bbb">#' + (i+1) + '</span>';
-            const nbMotsStr = r.nbMots ? ' · ' + r.nbMots + ' catégorie' + (r.nbMots > 1 ? 's' : '') : '';
-            meta = r.label + nbMotsStr + ' · ' + dateStr + ' ' + heureStr;
+            meta = r.label + ' · ' + dateStr + ' ' + heureStr;
         } else {
             rank = medals[r.rang-1] || '<span style="font-size:0.85rem;color:#bbb">' + r.rang + 'e</span>';
             meta = r.label + ' (' + r.totalJoueurs + ' joueurs) · ' + dateStr + ' ' + heureStr;
@@ -1214,12 +1213,7 @@ async function stopPartie(estInitiateur) {
                 clearInterval(timerInterval);
                 soloScoreTotal += score;
                 afficherResultatSoloFinal();
-                try {
-                    await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:'SOLO-SURVIE', nb_mots:cats.length, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' });
-                } catch(e) {
-                    console.error('Erreur sauvegarde score solo (survie):', e.message);
-                    alert('⚠️ Score non sauvegardé : ' + e.message);
-                }
+                try { await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:'SOLO-SURVIE', mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' }); } catch(e){}
             } else {
                 // Valider grille et continuer (estInitiateur=false car bouton manuel)
                 soloScoreTotal += score;
@@ -1243,12 +1237,7 @@ async function stopPartie(estInitiateur) {
                 soloGrilles++;
                 afficherResultatSoloFinal();
                 const nomPartie = soloModeJeu === 'blitz' ? 'SOLO-BLITZ' : 'SOLO-SPRINT';
-                try {
-                    await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:nomPartie, nb_mots:cats.length, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' });
-                } catch(e) {
-                    console.error('Erreur sauvegarde score solo (' + nomPartie + '):', e.message);
-                    alert('⚠️ Score non sauvegardé : ' + e.message);
-                }
+                try { await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:nomPartie, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' }); } catch(e){}
             }
         }
         return;
