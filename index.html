@@ -195,6 +195,22 @@
         .solo-result-big { font-size:3rem; font-weight:900; color:var(--primary); line-height:1; }
         .solo-result-big.survie { color:var(--danger); }
         .solo-result-sub { font-size:0.95rem; color:#555; margin-top:6px; }
+
+        /* Panneau vérification solo */
+        .dico-panel { background:#fff; border:2px solid #9b59b6; border-radius:14px; padding:16px; margin:12px 0; }
+        .dico-panel h4 { margin:0 0 12px 0; color:#6c3483; font-size:0.95rem; }
+        .dico-item { display:flex; align-items:center; justify-content:space-between; background:#f8f9fa; border:1px solid #eee; border-radius:10px; padding:9px 12px; margin:6px 0; gap:8px; }
+        .dico-item.valid   { border-color:#2ecc71; background:#eafaf1; }
+        .dico-item.invalid { border-color:#e74c3c; background:#fdecea; }
+        .dico-item-label { font-size:0.85rem; color:#555; min-width:80px; }
+        .dico-item-word  { font-weight:bold; color:#2c3e50; flex:1; }
+        .dico-item-status { font-size:0.8rem; font-weight:bold; }
+        .dico-actions { display:flex; gap:6px; }
+        .btn-dico { border:none; border-radius:8px; padding:5px 12px; cursor:pointer; font-weight:bold; font-size:0.82rem; transition:0.15s; }
+        .btn-dico-ok  { background:#e8f8f0; color:#27ae60; border:1.5px solid #27ae60; }
+        .btn-dico-non { background:#fdecea; color:#e74c3c; border:1.5px solid #e74c3c; }
+        .btn-dico.sel { transform:scale(1.08); opacity:1; }
+        .btn-dico:not(.sel) { opacity:0.45; }
     </style>
 </head>
 <body>
@@ -355,6 +371,20 @@
             <button id="valider-grille-btn" onclick="validerGrille()" class="btn btn-success hidden" style="flex:1;margin-bottom:0">✅ VALIDER LA GRILLE</button>
         </div>
         <button onclick="abandonnerPartie()" class="btn btn-grey" style="margin-top:8px">← ABANDONNER</button>
+    </div>
+
+    <!-- VÉRIFICATION DICO SOLO -->
+    <div id="solo-dico-check" class="hidden">
+        <div class="result-header">
+            <div class="result-letter" id="dico-letter">-</div>
+            <div class="result-title">📖 Vérification des mots</div>
+        </div>
+        <div id="dico-loading" style="text-align:center;padding:20px;color:#888">
+            <div class="spinner" style="border-top-color:#9b59b6;width:24px;height:24px;border-width:4px;display:inline-block;margin-bottom:10px"></div>
+            <div id="dico-loading-msg">🔍 Vérification en cours...</div>
+        </div>
+        <div id="dico-items-list" class="hidden"></div>
+        <button id="dico-confirm-btn" onclick="confirmerDicoSolo()" class="btn btn-success hidden" style="margin-top:12px">✅ Confirmer et continuer</button>
     </div>
 
     <!-- ATTENTE DES RÉSULTATS (multi) -->
@@ -558,7 +588,7 @@ for(let i=0;i<40;i++){
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
 function show(id) {
-    ['home','lobby','scores','setup','solo-mode-select','host-waiting','guest-waiting','game','waiting-results','result']
+    ['home','lobby','scores','setup','solo-mode-select','host-waiting','guest-waiting','game','waiting-results','solo-dico-check','result']
         .forEach(d => document.getElementById(d).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
 }
@@ -1180,60 +1210,66 @@ async function stopPartie(estInitiateur) {
     const monResultat = { pseudo, score, mots, temps: tempsEcoule };
 
     if(mode === 'solo') {
-        if(soloModeJeu === 'survival') {
-            // Compter les mots invalides
-            let nbInvalides = 0;
-            mots.forEach(m => {
-                if(m.length > 0 && !motValide(m, letter)) nbInvalides++;
+        clearInterval(timerInterval);
+
+        await lancerVerifDicoSolo(mots, letter, async (decisions) => {
+            // Recalculer le score en tenant compte des décisions utilisateur
+            let scoreFinal = 0;
+            mots.forEach((m, idx) => {
+                if(!m || !motValide(m, letter)) return;
+                // Si décision existe → l'utiliser, sinon valide par défaut
+                const valide = (decisions[idx] !== undefined) ? decisions[idx] : true;
+                if(valide) scoreFinal++;
             });
 
-            if(nbInvalides > 0 && soloVies > 0) {
-                // Perdre des vies, animer
-                const oldVies = soloVies;
-                soloVies = Math.max(0, soloVies - nbInvalides);
-                majSoloBar();
-                // Flash rouge
-                document.querySelector('.container').classList.add('wrong-flash');
-                setTimeout(() => document.querySelector('.container').classList.remove('wrong-flash'), 500);
-            }
+            if(soloModeJeu === 'survival') {
+                // Mots invalides = mots vides/mauvaise lettre + mots confirmés invalides par le joueur
+                let nbInvalides = 0;
+                mots.forEach((m, idx) => {
+                    if(!m) return;
+                    if(!motValide(m, letter)) { nbInvalides++; return; }
+                    if(decisions[idx] === false) nbInvalides++;
+                });
 
-            if(soloVies <= 0) {
-                // Game over survie
-                partieTerminee = true;
-                clearInterval(timerInterval);
-                soloScoreTotal += score;
-                afficherResultatSoloFinal();
-                try {
-                    await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:'SOLO-SURVIE', nb_mots:cats.length, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' });
-                } catch(e) { console.error('Score solo:', e.message); alert('⚠️ Score non sauvegardé : ' + e.message); }
+                if(nbInvalides > 0 && soloVies > 0) {
+                    soloVies = Math.max(0, soloVies - nbInvalides);
+                    majSoloBar();
+                    document.querySelector('.container').classList.add('wrong-flash');
+                    setTimeout(() => document.querySelector('.container').classList.remove('wrong-flash'), 500);
+                }
+
+                if(soloVies <= 0) {
+                    partieTerminee = true;
+                    soloScoreTotal += scoreFinal;
+                    afficherResultatSoloFinal();
+                    try {
+                        await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:'SOLO-SURVIE', nb_mots:cats.length, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' });
+                    } catch(e) { console.error('Score solo:', e.message); }
+                } else {
+                    soloScoreTotal += scoreFinal;
+                    soloGrilles++;
+                    letter = tirerLettre();
+                    demarrerJeu();
+                }
             } else {
-                // Valider grille et continuer (estInitiateur=false car bouton manuel)
-                soloScoreTotal += score;
+                // Blitz ou Sprint
+                soloScoreTotal += scoreFinal;
                 soloGrilles++;
-                letter = tirerLettre();
-                demarrerJeu();
+                if(!estInitiateur) {
+                    // Validation manuelle → nouvelle lettre, temps continue
+                    letter = tirerLettre();
+                    demarrerJeu();
+                } else {
+                    // Temps écoulé → résultats finaux
+                    partieTerminee = true;
+                    afficherResultatSoloFinal();
+                    const nomPartie = soloModeJeu === 'blitz' ? 'SOLO-BLITZ' : 'SOLO-SPRINT';
+                    try {
+                        await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:nomPartie, nb_mots:cats.length, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' });
+                    } catch(e) { console.error('Score solo:', e.message); }
+                }
             }
-        } else {
-            // Mode Blitz ou Sprint : valider la grille et continuer si temps restant
-            if(!estInitiateur) {
-                // C'est le joueur qui valide manuellement → nouvelle lettre
-                clearInterval(timerInterval);
-                soloScoreTotal += score;
-                soloGrilles++;
-                letter = tirerLettre();
-                demarrerJeu(); // reprend avec le temps restant
-            } else {
-                // Le temps est écoulé → résultats finaux
-                partieTerminee = true;
-                soloScoreTotal += score;
-                soloGrilles++;
-                afficherResultatSoloFinal();
-                const nomPartie = soloModeJeu === 'blitz' ? 'SOLO-BLITZ' : 'SOLO-SPRINT';
-                try {
-                    await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:nomPartie, nb_mots:cats.length, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' });
-                } catch(e) { console.error('Score solo:', e.message); alert('⚠️ Score non sauvegardé : ' + e.message); }
-            }
-        }
+        });
         return;
     }
 
@@ -1310,7 +1346,111 @@ function rejouerSolo() {
     demarrerJeu();
 }
 
-// ── Vérifier si tous les mots sont reçus ─────────────────────────────────────
+// ── Vérification dico solo ────────────────────────────────────────────────────
+let _dicoSoloPendingCallback = null; // fonction à appeler après confirmation
+let _dicoSoloDecisions = {};         // { idx: true(valide)/false(invalide) }
+
+async function lancerVerifDicoSolo(mots, lettreCourante, callback) {
+    // Pas de dico actif → on exécute directement le callback avec tous les mots valides
+    if(!dicoActif) { callback(mots, lettreCourante); return; }
+
+    _dicoSoloPendingCallback = callback;
+    _dicoSoloDecisions = {};
+
+    document.getElementById('dico-letter').innerText = lettreCourante;
+    document.getElementById('dico-loading').classList.remove('hidden');
+    document.getElementById('dico-loading-msg').innerText = '🔍 Vérification du dictionnaire...';
+    document.getElementById('dico-items-list').classList.add('hidden');
+    document.getElementById('dico-confirm-btn').classList.add('hidden');
+    show('solo-dico-check');
+
+    // Seuls les mots non-vides et commençant par la bonne lettre sont vérifiés
+    const candidats = mots.map((mot, idx) => ({ mot, idx, cat: cats[idx] }))
+                          .filter(m => m.mot && motValide(m.mot, lettreCourante));
+
+    if(!candidats.length) {
+        // Rien à vérifier
+        _dicoSoloPendingCallback = null;
+        callback(mots, lettreCourante);
+        return;
+    }
+
+    // DicoLink
+    document.getElementById('dico-loading-msg').innerText = '🔍 Vérification du dictionnaire français...';
+    const dicoResults = await Promise.all(
+        candidats.map(async c => {
+            const ok = await verifierMotDicoLink(c.mot);
+            return { ...c, dicoOk: ok };
+        })
+    );
+
+    // Claude
+    document.getElementById('dico-loading-msg').innerText = '🤖 Vérification des catégories par IA...';
+    const aPourClaude = dicoResults.filter(m => m.dicoOk !== false)
+        .map(m => ({ key: String(m.idx), mot: m.mot, categorie: m.cat, lettre: lettreCourante }));
+    const claudeResults = aPourClaude.length ? await verifierMotsAvecIA(aPourClaude) : {};
+
+    // Construire les décisions initiales
+    dicoResults.forEach(c => {
+        const refuseDico   = c.dicoOk === false;
+        const refuseClaude = claudeResults[String(c.idx)] === false;
+        // Par défaut : si refusé → invalide (false), sinon valide (true)
+        _dicoSoloDecisions[c.idx] = !(refuseDico || refuseClaude);
+    });
+
+    // Afficher le panneau
+    document.getElementById('dico-loading').classList.add('hidden');
+    const list = document.getElementById('dico-items-list');
+    list.classList.remove('hidden');
+
+    let html = `<div class="dico-panel"><h4>📖 L'IA a analysé tes mots — confirme ou corrige :</h4>`;
+    dicoResults.forEach(c => {
+        const refuseDico   = c.dicoOk === false;
+        const refuseClaude = claudeResults[String(c.idx)] === false;
+        const isValide = _dicoSoloDecisions[c.idx];
+        const raison = refuseDico ? '❌ Mot inconnu du dictionnaire'
+                     : refuseClaude ? '⚠️ Ne correspond pas à la catégorie'
+                     : '✅ Valide';
+        html += `<div class="dico-item ${isValide ? 'valid' : 'invalid'}" id="dico-item-${c.idx}">
+            <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+                    <span class="dico-item-label">${c.cat}</span>
+                    <span class="dico-item-word">${c.mot}</span>
+                </div>
+                <div class="dico-item-status" id="dico-status-${c.idx}">${raison}</div>
+            </div>
+            <div class="dico-actions">
+                <button class="btn-dico btn-dico-ok ${isValide?'sel':''}"
+                    id="dico-ok-${c.idx}" onclick="voterDicoSolo(${c.idx},true)">✅ Valide</button>
+                <button class="btn-dico btn-dico-non ${!isValide?'sel':''}"
+                    id="dico-no-${c.idx}" onclick="voterDicoSolo(${c.idx},false)">❌ Invalide</button>
+            </div>
+        </div>`;
+    });
+    html += `</div>`;
+    list.innerHTML = html;
+    document.getElementById('dico-confirm-btn').classList.remove('hidden');
+}
+
+function voterDicoSolo(idx, valide) {
+    _dicoSoloDecisions[idx] = valide;
+    document.getElementById('dico-ok-' + idx).classList.toggle('sel', valide);
+    document.getElementById('dico-no-' + idx).classList.toggle('sel', !valide);
+    const item = document.getElementById('dico-item-' + idx);
+    item.classList.toggle('valid', valide);
+    item.classList.toggle('invalid', !valide);
+    document.getElementById('dico-status-' + idx).innerText = valide ? '✅ Valide' : '❌ Invalide';
+}
+
+function confirmerDicoSolo() {
+    if(!_dicoSoloPendingCallback) return;
+    // Recalculer les mots en tenant compte des décisions
+    // On passe les mots originaux + les décisions au callback
+    const cb = _dicoSoloPendingCallback;
+    _dicoSoloPendingCallback = null;
+    cb(_dicoSoloDecisions);
+}
+
 async function verifierTousRecus() {
     if(Object.keys(resultatsJoueurs).length < nbJoueursPartie) return;
     const tousResultats = Object.values(resultatsJoueurs);
