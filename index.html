@@ -293,6 +293,13 @@
         <input type="text" id="room-name-input" placeholder="Nom de la salle">
         <div id="selection-grid" class="grid-selection"></div>
         <p style="color:#888;font-size:0.88rem;margin:4px 0">Sélectionne 1 à 8 catégories</p>
+        <label style="display:flex;align-items:center;gap:10px;background:#f8f9fa;border:2px solid #eee;border-radius:12px;padding:12px 14px;margin:10px 0;cursor:pointer;transition:0.2s" id="dico-label">
+            <input type="checkbox" id="dico-checkbox" onchange="toggleDico(this)" style="width:20px;height:20px;accent-color:#9b59b6;cursor:pointer;flex-shrink:0">
+            <div>
+                <div style="font-weight:bold;color:#2c3e50;font-size:0.95rem">📖 Vérification dictionnaire</div>
+                <div style="font-size:0.78rem;color:#888;margin-top:2px">Vérifie automatiquement chaque mot après la partie (dictionnaire français + IA)</div>
+            </div>
+        </label>
         <div class="time-picker hidden" id="time-picker-div">
             <label>⏱ Durée :</label>
             <button class="time-btn" onclick="changerTemps(-1)">−</button>
@@ -525,6 +532,7 @@ let mesVotes2J = {};
 // Scores cumulés sur plusieurs manches
 let scoresCumules = {};   // { pseudo: totalPoints }
 let mancheNum = 1;
+let dicoActif = false; // vérification dictionnaire activée par l'utilisateur
 
 // ── Initialisation AdSense (désactivé en mode PWA standalone) ────────────────
 const _isStandalone = window.matchMedia('(display-mode: standalone)').matches
@@ -562,6 +570,18 @@ function showError(cid, msg) {
     box.innerHTML = '⚠️ ' + msg;
     el.prepend(box);
 }
+function toggleDico(checkbox) {
+    dicoActif = checkbox.checked;
+    const label = document.getElementById('dico-label');
+    if(dicoActif) {
+        label.style.borderColor = '#9b59b6';
+        label.style.background = '#f5eef8';
+    } else {
+        label.style.borderColor = '#eee';
+        label.style.background = '#f8f9fa';
+    }
+}
+
 function retourDepuisSetup() {
     if(mode === 'solo') show('solo-mode-select');
     else retourAccueil();
@@ -987,6 +1007,7 @@ function ouvrirChannelGuest() {
         letter = payload.letter; cats = payload.cats;
         nbJoueursPartie = payload.nbJoueurs || 2;
         dureeMinutes = payload.duree || 3;
+        dicoActif = payload.dico || false;
         demarrerJeu();
     });
     channel.on('broadcast', { event:'stop' }, () => {
@@ -1056,7 +1077,7 @@ async function lancerTopDepart() {
     partieTerminee = false;
     try {
         await channel.send({ type:'broadcast', event:'start',
-            payload:{ letter, cats, nbJoueurs:nbJoueursPartie, duree:dureeMinutes } });
+            payload:{ letter, cats, nbJoueurs:nbJoueursPartie, duree:dureeMinutes, dico:dicoActif } });
         await dbUpdate('partie_multi', { nom_partie:'eq.'+room }, { statut:'en_cours' });
     } catch(err) { console.warn(err.message); }
     demarrerJeu();
@@ -1305,8 +1326,93 @@ async function verifierTousRecus() {
     afficherResultats(tousResultats, cats, letter);
 }
 
+// ── Vérification automatique des mots (DicoLink + Claude) ────────────────────
+async function verifierMotDicoLink(mot) {
+    try {
+        const r = await fetch(`https://api.dicolink.com/v1/mot/${encodeURIComponent(mot)}/definitions?limite=1&api_key=nP3bGaRRiuKYoLYPJfz2`);
+        if(!r.ok) return null; // indisponible → on ne pénalise pas
+        const data = await r.json();
+        return Array.isArray(data) && data.length > 0;
+    } catch(e) { return null; }
+}
+
+async function verifierMotsAvecIA(mots_cats) {
+    // mots_cats = [{mot, categorie, lettre, key}, ...]
+    if(!mots_cats.length) return {};
+    const prompt = `Tu es un arbitre du jeu "Le Petit Bac". Pour chaque entrée ci-dessous, réponds uniquement par un JSON de la forme {"key": true/false} où true = valide, false = invalide.
+Critères : le mot doit commencer par la lettre indiquée ET correspondre à la catégorie.
+Entrées :
+${mots_cats.map(m => `- key:"${m.key}" mot:"${m.mot}" catégorie:"${m.categorie}" lettre:"${m.lettre}"`).join('\n')}
+Réponds UNIQUEMENT avec le JSON, sans texte ni balises.`;
+    try {
+        const resp = await fetch("https://api.anthropic.com/v1/messages", {
+            method:"POST",
+            headers:{ "Content-Type":"application/json" },
+            body: JSON.stringify({
+                model:"claude-sonnet-4-20250514",
+                max_tokens:500,
+                messages:[{ role:"user", content:prompt }]
+            })
+        });
+        const data = await resp.json();
+        const text = data.content?.map(b => b.text||"").join("") || "{}";
+        const clean = text.replace(/```json|```/g,"").trim();
+        return JSON.parse(clean);
+    } catch(e) { return {}; }
+}
+
+async function verifierTousLesMots(resultats, categoriesList, lettreTiree) {
+    const banner = document.getElementById('contest-banner');
+    banner.classList.remove('hidden');
+    banner.innerHTML = '🔍 <b>Vérification automatique des mots en cours...</b>';
+
+    const motsCandidats = []; // mots valides à vérifier
+
+    resultats.forEach(r => {
+        (r.mots || []).forEach((mot, idx) => {
+            if(mot && motValide(mot, lettreTiree)) {
+                motsCandidats.push({ key: r.pseudo+'|'+idx, mot, pseudo: r.pseudo, idx, categorie: categoriesList[idx] });
+            }
+        });
+    });
+
+    if(!motsCandidats.length) return new Set();
+
+    // Étape 1 : DicoLink en parallèle
+    const dicoResults = await Promise.all(
+        motsCandidats.map(async m => {
+            const ok = await verifierMotDicoLink(m.mot);
+            return { ...m, dicoOk: ok };
+        })
+    );
+
+    // Mots refusés par le dico (avec certitude)
+    const refusesDico = new Set(dicoResults.filter(m => m.dicoOk === false).map(m => m.key));
+
+    // Mots à valider par Claude (ceux que le dico a acceptés ou était indisponible)
+    const aPourClaude = dicoResults.filter(m => m.dicoOk !== false)
+        .map(m => ({ key: m.key, mot: m.mot, categorie: m.categorie, lettre: lettreTiree }));
+
+    banner.innerHTML = '🤖 <b>Vérification des catégories par IA...</b>';
+
+    const claudeResults = await verifierMotsAvecIA(aPourClaude);
+
+    // Mots refusés par Claude
+    const refusesClaude = new Set(
+        Object.entries(claudeResults).filter(([, v]) => v === false).map(([k]) => k)
+    );
+
+    // Union des refus
+    const motsConcernes = new Set([...refusesDico, ...refusesClaude]);
+
+    // Pré-marquer comme contestés automatiquement
+    motsConcernes.forEach(key => mesContestations.add(key));
+
+    return motsConcernes;
+}
+
 // ── Afficher résultats (phase contestation) ───────────────────────────────────
-function afficherResultats(resultats, categoriesList, lettreTiree) {
+async function afficherResultats(resultats, categoriesList, lettreTiree) {
     show('result');
     resultatsFinaux = resultats;
     catsFinales = categoriesList;
@@ -1319,11 +1425,22 @@ function afficherResultats(resultats, categoriesList, lettreTiree) {
         mancheNum > 1 ? 'Manche ' + mancheNum + ' — Résultats' : 'Résultats';
 
     // Reset tous les divs de contestation
-    document.getElementById('contest-banner').classList.add('hidden');
+    if(dicoActif) {
+        document.getElementById('contest-banner').classList.remove('hidden');
+        document.getElementById('contest-banner').innerHTML = '🔍 <b>Vérification automatique des mots...</b>';
+    } else {
+        document.getElementById('contest-banner').classList.add('hidden');
+    }
     document.getElementById('contest-actions').classList.add('hidden');
     document.getElementById('vote-banner').classList.add('hidden');
     document.getElementById('waiting-contest-div').classList.add('hidden');
     document.getElementById('end-btns').classList.add('hidden');
+
+    // Vérification automatique (seulement si activée)
+    let motsAutoContestes = new Set();
+    if(dicoActif) {
+        motsAutoContestes = await verifierTousLesMots(resultats, categoriesList, lettreTiree);
+    }
 
     if(mode !== 'solo' && resultats.length > 1) {
         contestPhase = true;
@@ -1335,11 +1452,16 @@ function afficherResultats(resultats, categoriesList, lettreTiree) {
     renderTableau(resultats, categoriesList, lettreTiree, false, new Set());
 
     if(mode !== 'solo' && resultats.length > 1) {
+        const nbAuto = motsAutoContestes.size;
+        const msgAuto = nbAuto > 0
+            ? `🤖 <b>${nbAuto} mot(s) signalé(s) automatiquement</b> (🚩). `
+            : '✅ Aucun mot suspect détecté. ';
         document.getElementById('contest-banner').classList.remove('hidden');
         document.getElementById('contest-banner').innerHTML =
-            "🗳️ <b>Phase de contestation</b> — Clique sur les mots de tes adversaires avec lesquels tu n'es pas d'accord, puis valide.";
+            msgAuto + "🗳️ <b>Phase de contestation</b> — Tu peux aussi contester manuellement, puis valide.";
         document.getElementById('contest-actions').classList.remove('hidden');
     } else {
+        document.getElementById('contest-banner').classList.add('hidden');
         // Solo : bouton quitter uniquement
         const eb = document.getElementById('end-btns');
         eb.classList.remove('hidden');
