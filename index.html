@@ -911,6 +911,13 @@ function ouvrirChannelHote() {
     channel.on('broadcast', { event:'rejouer' }, () => {
         entrerEnAttenteRejouer();
     });
+    // Sécurité : le guest annonce son arrivée via broadcast en plus de la présence
+    channel.on('broadcast', { event:'player-joined' }, ({ payload }) => {
+        if(payload.pseudo && !joueurs.find(j => j.pseudo === payload.pseudo)) {
+            joueurs.push({ pseudo: payload.pseudo, isHost: payload.isHost || false });
+            afficherJoueursHote();
+        }
+    });
 
     channel.on('presence', { event:'sync' }, () => {
         const state = channel.presenceState();
@@ -934,7 +941,20 @@ function ouvrirChannelHote() {
         afficherJoueursHote();
     });
     channel.subscribe(async (status) => {
-        if(status === 'SUBSCRIBED') await channel.track({ pseudo, isHost:true });
+        if(status === 'SUBSCRIBED') {
+            await channel.track({ pseudo, isHost:true });
+            // Polling de secours : re-lit la présence toutes les 3s au cas où un join aurait été raté
+            if(window._hostPresenceInterval) clearInterval(window._hostPresenceInterval);
+            window._hostPresenceInterval = setInterval(() => {
+                if(!channel) { clearInterval(window._hostPresenceInterval); return; }
+                const state = channel.presenceState();
+                Object.values(state).flat().forEach(p => {
+                    if(p.pseudo && !joueurs.find(j => j.pseudo === p.pseudo))
+                        joueurs.push({ pseudo: p.pseudo, isHost: p.isHost || false });
+                });
+                afficherJoueursHote();
+            }, 3000);
+        }
     });
 }
 
@@ -1018,6 +1038,10 @@ function ouvrirChannelGuest() {
     channel.subscribe(async (status) => {
         if(status === 'SUBSCRIBED') {
             await channel.track({ pseudo, isHost:false });
+            // Annoncer son arrivée via broadcast (filet de sécurité en plus de la présence)
+            try {
+                await channel.send({ type:'broadcast', event:'player-joined', payload:{ pseudo, isHost:false } });
+            } catch(e) {}
         } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             showError('guest-waiting', 'Erreur Realtime (' + status + ').');
         }
@@ -1033,6 +1057,7 @@ function afficherJoueursGuest() {
 
 // ── Lancer ────────────────────────────────────────────────────────────────────
 async function lancerTopDepart() {
+    if(window._hostPresenceInterval) { clearInterval(window._hostPresenceInterval); window._hostPresenceInterval = null; }
     letter = "ABCDEFGHIJKLMNOPRST"[Math.floor(Math.random()*19)];
     nbJoueursPartie = joueurs.length;
     resultatsJoueurs = {};
