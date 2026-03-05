@@ -313,6 +313,7 @@
         </div>
         <button id="host-launch-btn" onclick="lancerTopDepart()" class="btn btn-success" disabled>⏳ En attente de joueurs...</button>
         <button id="host-cancel-btn" onclick="annulerSalle()" class="btn btn-danger">✖ ANNULER LA SALLE</button>
+        <div id="debug-log" style="margin-top:10px;padding:8px;background:#f0f0f0;border-radius:8px;font-size:0.72rem;text-align:left;color:#333;max-height:120px;overflow-y:auto;display:none"></div>
     </div>
 
     <!-- SALLE ATTENTE GUEST -->
@@ -647,9 +648,46 @@ async function chargerLobby() {
         const seen = new Map();
         data.forEach(d => { if(!seen.has(d.nom_partie)) seen.set(d.nom_partie, d); });
 
-        // Afficher toutes les salles en attente (pas de vérif Realtime séparée
-        // car l'hôte est sur 'room-X', pas sur un canal de vérification séparé)
-        const sallesActives = [...seen.values()];
+        // Vérifier l'activité de chaque salle via la présence Realtime
+        list.innerHTML = "<p style='padding:12px'>🔎 Vérification des salles actives...</p>";
+        const sallesActives = [];
+
+        await Promise.all([...seen.entries()].map(([nom, row]) => {
+            return new Promise(resolve => {
+                let resolved = false;
+                const ch = _supabase.channel('room-' + nom, { config:{ presence:{ key:'_check' } } });
+                const timeout = setTimeout(async () => {
+                    if(resolved) return;
+                    resolved = true;
+                    _supabase.removeChannel(ch);
+                    // Personne dans la salle → supprimer et ignorer
+                    try { await dbDelete('partie_multi', { nom_partie:'eq.'+nom }); } catch(e){}
+                    resolve(null);
+                }, 2500);
+
+                ch.on('presence', { event:'sync' }, () => {
+                    if(resolved) return;
+                    const state = ch.presenceState();
+                    const nbPresents = Object.keys(state).filter(k => k !== '_check').length;
+                    if(nbPresents > 0) {
+                        sallesActives.push(row);
+                    } else {
+                        // Salle vide → supprimer
+                        clearTimeout(timeout);
+                        resolved = true;
+                        _supabase.removeChannel(ch);
+                        dbDelete('partie_multi', { nom_partie:'eq.'+nom }).catch(()=>{});
+                        resolve(null);
+                        return;
+                    }
+                    clearTimeout(timeout);
+                    resolved = true;
+                    _supabase.removeChannel(ch);
+                    resolve(null);
+                });
+                ch.subscribe();
+            });
+        }));
 
         list.innerHTML = "";
         if(!sallesActives.length) {
@@ -713,7 +751,7 @@ async function ouvrirScores() {
         // Charger les deux tables en parallèle
         const [dataSolo, dataMulti] = await Promise.all([
             dbSelect('partie_solo', { order:'created_at.desc' }).catch(() => []),
-            dbSelect('scores_multi', { order:'created_at.desc' }).catch(() => [])
+            dbSelect('partie_multi', { order:'created_at.desc' }).catch(() => [])
         ]);
 
         // Solo : une ligne = une partie
@@ -723,22 +761,45 @@ async function ouvrirScores() {
                 pseudo: r.pseudo,
                 score: r.score,
                 total: null,
-                nbMots: r.nb_mots || null,
                 date: r.created_at,
                 label: r.nom_partie || 'Solo'
             }))
             .sort((a,b) => b.score - a.score);
 
-        const lignesMulti = (dataMulti || [])
-            .filter(r => r.pseudo && r.score != null)
-            .map(r => ({
-                pseudo: r.pseudo,
-                score: r.score,
-                rang: r.rang || 1,
-                totalJoueurs: r.total_joueurs || 1,
-                date: r.created_at,
-                label: r.nom_partie || 'Multi'
-            }));
+        // Multi : regrouper par partie (nom_partie + date proche) et calculer scores
+        // On prend toutes les lignes avec un vrai score de jeu (statut != attente)
+        const multiJeux = (dataMulti || []).filter(r =>
+            r.pseudo && r.score != null && r.statut !== 'attente'
+        );
+
+        // Regrouper par session : même nom_partie, créé dans la même heure
+        const sessions = {};
+        multiJeux.forEach(r => {
+            const heure = new Date(r.created_at);
+            heure.setMinutes(0,0,0);
+            const key = r.nom_partie + '|' + heure.toISOString();
+            if(!sessions[key]) sessions[key] = { nom: r.nom_partie, date: r.created_at, joueurs: [] };
+            // Éviter les doublons de pseudo dans la même session
+            if(!sessions[key].joueurs.find(j => j.pseudo === r.pseudo)) {
+                sessions[key].joueurs.push({ pseudo: r.pseudo, score: r.score });
+            }
+        });
+
+        // Aplatir en lignes de classement
+        const lignesMulti = [];
+        Object.values(sessions).forEach(sess => {
+            const tries = [...sess.joueurs].sort((a,b) => b.score - a.score);
+            tries.forEach((j, idx) => {
+                lignesMulti.push({
+                    pseudo: j.pseudo,
+                    score: j.score,
+                    rang: idx + 1,
+                    totalJoueurs: tries.length,
+                    date: sess.date,
+                    label: sess.nom
+                });
+            });
+        });
         lignesMulti.sort((a,b) => b.score - a.score);
         scoresData.multi = lignesMulti;
 
@@ -785,8 +846,7 @@ function afficherScoresList() {
         let rank, meta;
         if(scoresTab === 'solo') {
             rank = medals[i] || '<span style="font-size:0.85rem;color:#bbb">#' + (i+1) + '</span>';
-            const nbMotsStr = r.nbMots ? ' · ' + r.nbMots + ' cat.' : '';
-            meta = r.label + nbMotsStr + ' · ' + dateStr + ' ' + heureStr;
+            meta = r.label + ' · ' + dateStr + ' ' + heureStr;
         } else {
             rank = medals[r.rang-1] || '<span style="font-size:0.85rem;color:#bbb">' + r.rang + 'e</span>';
             meta = r.label + ' (' + r.totalJoueurs + ' joueurs) · ' + dateStr + ' ' + heureStr;
@@ -888,18 +948,15 @@ async function validerSetup() {
     }
 }
 
-// ── Utilitaire présence ───────────────────────────────────────────────────────
-// Reconstruit la liste joueurs depuis presenceState() de Supabase
-function mettreAJourJoueurs(state) {
-    const presents = Object.values(state).flat();
-    // Ajouter les nouveaux
-    presents.forEach(p => {
-        if(p.pseudo && !joueurs.find(j => j.pseudo === p.pseudo))
-            joueurs.push({ pseudo: p.pseudo, isHost: p.isHost || false });
-    });
-    // Retirer les partis (sauf l'hôte local qui garde toujours sa place)
-    const pseudosPresents = presents.map(p => p.pseudo).filter(Boolean);
-    joueurs = joueurs.filter(j => j.pseudo === pseudo || pseudosPresents.includes(j.pseudo));
+// ── Debug log visible ────────────────────────────────────────────────────────
+function dbg(msg) {
+    console.log('[DBG]', msg);
+    const el = document.getElementById('debug-log');
+    if(el) {
+        el.style.display = 'block';
+        el.innerHTML += '<div>' + new Date().toLocaleTimeString() + ' — ' + msg + '</div>';
+        el.scrollTop = el.scrollHeight;
+    }
 }
 
 // ── Channel hôte ──────────────────────────────────────────────────────────────
@@ -933,20 +990,36 @@ function ouvrirChannelHote() {
     });
 
     channel.on('presence', { event:'sync' }, () => {
-        mettreAJourJoueurs(channel.presenceState());
+        const state = channel.presenceState();
+        dbg('sync — clés présence: ' + JSON.stringify(Object.keys(state)));
+        Object.values(state).flat().forEach(p => {
+            if(p.pseudo && !joueurs.find(j => j.pseudo === p.pseudo)) {
+                joueurs.push({ pseudo: p.pseudo, isHost: p.isHost || false });
+                dbg('sync → ajout joueur: ' + p.pseudo);
+            }
+        });
+        const pseudosPresents = Object.values(state).flat().map(p => p.pseudo).filter(Boolean);
+        joueurs = joueurs.filter(j => j.pseudo === pseudo || pseudosPresents.includes(j.pseudo));
         afficherJoueursHote();
     });
-    channel.on('presence', { event:'join' }, () => {
-        mettreAJourJoueurs(channel.presenceState());
+    channel.on('presence', { event:'join' }, ({ newPresences }) => {
+        dbg('join reçu: ' + JSON.stringify(newPresences));
+        newPresences.forEach(p => {
+            if(!joueurs.find(j => j.pseudo===p.pseudo))
+                joueurs.push({ pseudo:p.pseudo, isHost:false });
+        });
         afficherJoueursHote();
     });
-    channel.on('presence', { event:'leave' }, () => {
-        mettreAJourJoueurs(channel.presenceState());
+    channel.on('presence', { event:'leave' }, ({ leftPresences }) => {
+        dbg('leave reçu: ' + JSON.stringify(leftPresences));
+        leftPresences.forEach(p => { joueurs = joueurs.filter(j => j.pseudo!==p.pseudo); });
         afficherJoueursHote();
     });
     channel.subscribe(async (status) => {
+        dbg('subscribe status: ' + status);
         if(status === 'SUBSCRIBED') {
             await channel.track({ pseudo, isHost:true });
+            dbg('track hôte envoyé: ' + pseudo);
         }
     });
 }
@@ -1009,21 +1082,22 @@ function ouvrirChannelGuest() {
         entrerEnAttenteRejouer();
     });
 
-    channel.on('presence', { event:'sync' }, () => {
-        mettreAJourJoueurs(channel.presenceState());
+    channel.on('presence', { event:'join' }, ({ newPresences }) => {
+        newPresences.forEach(p => {
+            if(!joueurs.find(j => j.pseudo===p.pseudo))
+                joueurs.push({ pseudo:p.pseudo, isHost:p.isHost||false });
+        });
         afficherJoueursGuest();
     });
-    channel.on('presence', { event:'join' }, () => {
-        mettreAJourJoueurs(channel.presenceState());
-        afficherJoueursGuest();
-    });
-    channel.on('presence', { event:'leave' }, () => {
-        mettreAJourJoueurs(channel.presenceState());
+    channel.on('presence', { event:'leave' }, ({ leftPresences }) => {
+        leftPresences.forEach(p => { joueurs = joueurs.filter(j => j.pseudo!==p.pseudo); });
         afficherJoueursGuest();
     });
     channel.subscribe(async (status) => {
+        console.log('[DBG guest] subscribe status:', status);
         if(status === 'SUBSCRIBED') {
             await channel.track({ pseudo, isHost:false });
+            console.log('[DBG guest] track envoyé:', pseudo);
         } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             showError('guest-waiting', 'Erreur Realtime (' + status + ').');
         }
@@ -1134,8 +1208,6 @@ function validerGrille() {
     stopPartie(false);
 }
 
-let votesRecus2J = {}; // votes reçus mode 2 joueurs
-
 // ── Stop ──────────────────────────────────────────────────────────────────────
 async function stopPartie(estInitiateur) {
     if(partieTerminee) return;
@@ -1173,12 +1245,7 @@ async function stopPartie(estInitiateur) {
                 clearInterval(timerInterval);
                 soloScoreTotal += score;
                 afficherResultatSoloFinal();
-                try {
-                    await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:'SOLO-SURVIE', nb_mots:cats.length, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' });
-                } catch(e) {
-                    console.error('Erreur score solo survie:', e.message);
-                    alert('⚠️ Score non sauvegardé : ' + e.message);
-                }
+                try { await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:'SOLO-SURVIE', mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' }); } catch(e){}
             } else {
                 // Valider grille et continuer (estInitiateur=false car bouton manuel)
                 soloScoreTotal += score;
@@ -1202,12 +1269,7 @@ async function stopPartie(estInitiateur) {
                 soloGrilles++;
                 afficherResultatSoloFinal();
                 const nomPartie = soloModeJeu === 'blitz' ? 'SOLO-BLITZ' : 'SOLO-SPRINT';
-                try {
-                    await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:nomPartie, nb_mots:cats.length, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' });
-                } catch(e) {
-                    console.error('Erreur score solo (' + nomPartie + '):', e.message);
-                    alert('⚠️ Score non sauvegardé : ' + e.message);
-                }
+                try { await dbInsert('partie_solo', { pseudo, score:soloScoreTotal, nom_partie:nomPartie, mot_1:mots[0]||'',mot_2:mots[1]||'',mot_3:mots[2]||'',mot_4:mots[3]||'',mot_5:mots[4]||'',mot_6:mots[5]||'',mot_7:mots[6]||'',mot_8:mots[7]||'' }); } catch(e){}
             }
         }
         return;
@@ -1572,6 +1634,9 @@ async function envoyerMesVotes2J() {
     calculerFinaux2J();
 }
 
+// Stockage des votes 2 joueurs
+let votesRecus2J = {};
+
 function recevoirVote2J(payload) {
     votesRecus2J[payload.voteur] = payload.votes;
     calculerFinaux2J();
@@ -1643,17 +1708,6 @@ function appliquerScoresFinaux(resultatsAjustes, motsCancelesArr) {
         if(scoresCumules[r.pseudo] == null) scoresCumules[r.pseudo] = 0;
         scoresCumules[r.pseudo] += r.score;
     });
-
-    // Sauvegarder dans scores_multi (hôte uniquement)
-    if(mode === 'host') {
-        const tries = [...resultatsAjustes].sort((a,b) => b.score - a.score);
-        tries.forEach((r, idx) => {
-            dbInsert('scores_multi', {
-                nom_partie: room, pseudo: r.pseudo,
-                score: r.score, rang: idx + 1, total_joueurs: tries.length
-            }).catch(() => {});
-        });
-    }
 
     document.getElementById('contest-banner').classList.add('hidden');
     document.getElementById('contest-actions').classList.add('hidden');
