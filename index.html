@@ -50,7 +50,7 @@
         .game-field { display:flex; align-items:center; background:#f8f9fa; padding:10px; border-radius:12px; margin-bottom:8px; border:1px solid #eee; }
         .game-field label { font-weight:bold; color:var(--dark); min-width:95px; text-align:left; }
         .game-field input { flex:1; margin-left:8px; margin-bottom:0; }
-        .hidden { display:none; }
+        .hidden { display:none !important; }
         .spinner { display:inline-block; width:16px; height:16px; border:3px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; margin-right:6px; }
         @keyframes spin { to{transform:rotate(360deg)} }
         .error-box { background:#fdecea; border:1px solid #e74c3c; color:#c0392b; border-radius:10px; padding:12px; margin:10px 0; font-size:0.88rem; text-align:left; word-break:break-word; }
@@ -282,6 +282,7 @@
             <button class="time-btn" onclick="changerTemps(+1)">+</button>
         </div>
         <button id="start-btn" onclick="validerSetup()" disabled class="btn btn-multi">CRÉER LA SALLE</button>
+        <button class="btn btn-grey" onclick="retourDepuisSetup()" style="margin-top:4px">← RETOUR</button>
     </div>
 
     <!-- SALLE ATTENTE HÔTE -->
@@ -318,6 +319,7 @@
             <button id="stop-btn" onclick="stopPartie(true)" class="btn btn-danger" style="flex:1;margin-bottom:0">🛑 STOP !</button>
             <button id="valider-grille-btn" onclick="validerGrille()" class="btn btn-success hidden" style="flex:1;margin-bottom:0">✅ VALIDER LA GRILLE</button>
         </div>
+        <button onclick="abandonnerPartie()" class="btn btn-grey" style="margin-top:8px">← ABANDONNER</button>
     </div>
 
     <!-- ATTENTE DES RÉSULTATS (multi) -->
@@ -458,6 +460,14 @@ window.addEventListener('DOMContentLoaded', () => {
     if(saved) document.getElementById('pseudo').value = saved;
 });
 
+// ── Normalisation (accents) ───────────────────────────────────────────────────
+function normaliser(str) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+function motValide(mot, lettre) {
+    return mot && mot.length > 1 && normaliser(mot).startsWith(normaliser(lettre));
+}
+
 // ── État global ───────────────────────────────────────────────────────────────
 let mode = "", room = "", channel = null;
 let cats = [], letter = "", timerInterval, timeLeft = 0;
@@ -513,6 +523,17 @@ function showError(cid, msg) {
     box.innerHTML = '⚠️ ' + msg;
     el.prepend(box);
 }
+function retourDepuisSetup() {
+    if(mode === 'solo') show('solo-mode-select');
+    else retourAccueil();
+}
+function abandonnerPartie() {
+    if(!confirm('Abandonner la partie en cours ?')) return;
+    clearInterval(timerInterval);
+    partieTerminee = true;
+    if(channel) { _supabase.removeChannel(channel); channel = null; }
+    retourAccueil();
+}
 function retourAccueil() { location.reload(); }
 function checkPseudo() {
     pseudo = document.getElementById('pseudo').value.trim();
@@ -557,21 +578,76 @@ async function chargerLobby() {
     const list = document.getElementById('room-list');
     list.innerHTML = "<p style='padding:12px'>🔍 Recherche...</p>";
     const limite3h = new Date(Date.now() - 3*60*60*1000).toISOString();
+    const limite30min = new Date(Date.now() - 30*60*1000).toISOString();
     try {
+        // Supprimer les salles expirées
         await dbDelete('partie_multi', { statut:'eq.attente',  created_at:'lt.'+limite3h });
         await dbDelete('partie_multi', { statut:'eq.terminee', created_at:'lt.'+limite3h });
+        // Supprimer les salles "en_cours" abandonnées depuis plus de 30 min
+        await dbDelete('partie_multi', { statut:'eq.en_cours', created_at:'lt.'+limite30min });
+
         const data = await dbSelect('partie_multi', {
             select:'nom_partie,pseudo,created_at', statut:'eq.attente',
             created_at:'gte.'+limite3h, order:'created_at.desc'
         });
-        list.innerHTML = "";
+
         if(!data || !data.length) {
             list.innerHTML = "<p style='padding:15px;color:#888'>Aucune salle disponible.</p>";
             return;
         }
+
+        // Dédoublonner par nom de salle
         const seen = new Map();
         data.forEach(d => { if(!seen.has(d.nom_partie)) seen.set(d.nom_partie, d); });
-        seen.forEach((row, nom) => {
+
+        // Vérifier l'activité de chaque salle via la présence Realtime
+        list.innerHTML = "<p style='padding:12px'>🔎 Vérification des salles actives...</p>";
+        const sallesActives = [];
+
+        await Promise.all([...seen.entries()].map(([nom, row]) => {
+            return new Promise(resolve => {
+                let resolved = false;
+                const ch = _supabase.channel('room-' + nom, { config:{ presence:{ key:'_check' } } });
+                const timeout = setTimeout(async () => {
+                    if(resolved) return;
+                    resolved = true;
+                    _supabase.removeChannel(ch);
+                    // Personne dans la salle → supprimer et ignorer
+                    try { await dbDelete('partie_multi', { nom_partie:'eq.'+nom }); } catch(e){}
+                    resolve(null);
+                }, 2500);
+
+                ch.on('presence', { event:'sync' }, () => {
+                    if(resolved) return;
+                    const state = ch.presenceState();
+                    const nbPresents = Object.keys(state).filter(k => k !== '_check').length;
+                    if(nbPresents > 0) {
+                        sallesActives.push(row);
+                    } else {
+                        // Salle vide → supprimer
+                        clearTimeout(timeout);
+                        resolved = true;
+                        _supabase.removeChannel(ch);
+                        dbDelete('partie_multi', { nom_partie:'eq.'+nom }).catch(()=>{});
+                        resolve(null);
+                        return;
+                    }
+                    clearTimeout(timeout);
+                    resolved = true;
+                    _supabase.removeChannel(ch);
+                    resolve(null);
+                });
+                ch.subscribe();
+            });
+        }));
+
+        list.innerHTML = "";
+        if(!sallesActives.length) {
+            list.innerHTML = "<p style='padding:15px;color:#888'>Aucune salle disponible.</p>";
+            return;
+        }
+        sallesActives.forEach(row => {
+            const nom = row.nom_partie;
             const d = new Date(row.created_at);
             const ds = d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
             const hs = d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
@@ -1060,7 +1136,7 @@ async function stopPartie(estInitiateur) {
     let mots = [], score = 0;
     inputs.forEach(i => {
         const v = i.value.trim(); mots.push(v);
-        if(v.toLowerCase().startsWith(letter.toLowerCase()) && v.length > 1) score++;
+        if(motValide(v, letter)) score++;
     });
     const tempsEcoule = dureeMinutes * 60 - timeLeft;
     const monResultat = { pseudo, score, mots, temps: tempsEcoule };
@@ -1070,7 +1146,7 @@ async function stopPartie(estInitiateur) {
             // Compter les mots invalides
             let nbInvalides = 0;
             mots.forEach(m => {
-                if(m.length > 0 && !(m.toLowerCase().startsWith(letter.toLowerCase()) && m.length > 1)) nbInvalides++;
+                if(m.length > 0 && !motValide(m, letter)) nbInvalides++;
             });
 
             if(nbInvalides > 0 && soloVies > 0) {
@@ -1228,11 +1304,16 @@ function afficherResultats(resultats, categoriesList, lettreTiree) {
     document.getElementById('waiting-contest-div').classList.add('hidden');
     document.getElementById('end-btns').classList.add('hidden');
 
-    renderTableau(resultats, categoriesList, lettreTiree, false, new Set());
-
     if(mode !== 'solo' && resultats.length > 1) {
         contestPhase = true;
         nbJoueursContestants = resultats.length;
+    } else {
+        contestPhase = false;
+    }
+
+    renderTableau(resultats, categoriesList, lettreTiree, false, new Set());
+
+    if(mode !== 'solo' && resultats.length > 1) {
         document.getElementById('contest-banner').classList.remove('hidden');
         document.getElementById('contest-banner').innerHTML =
             "🗳️ <b>Phase de contestation</b> — Clique sur les mots de tes adversaires avec lesquels tu n'es pas d'accord, puis valide.";
@@ -1276,7 +1357,7 @@ function renderTableau(resultats, categoriesList, lettreTiree, finale, motsCance
         tbody += `<tr><td class="cat-col">${cat}</td>`;
         tries.forEach(r => {
             const mot = (r.mots && r.mots[idx]) ? r.mots[idx] : '';
-            const valide = mot && mot.toLowerCase().startsWith(lettreTiree.toLowerCase()) && mot.length > 1;
+            const valide = motValide(mot, lettreTiree);
             const key = r.pseudo + '|' + idx;
             const estAnnule = motsCanceles.has(key);
             const estConteste = mesContestations.has(key);
@@ -1521,7 +1602,7 @@ async function diffuserEtAfficherFinaux(motsCanceles) {
         let s = 0;
         catsFinales.forEach((cat, idx) => {
             const mot = r.mots?.[idx] || '';
-            const valide = mot && mot.toLowerCase().startsWith(lettreFinale.toLowerCase()) && mot.length > 1;
+            const valide = motValide(mot, lettreFinale);
             if(valide && !motsCanceles.has(r.pseudo + '|' + idx)) s++;
         });
         return { ...r, score:s };
