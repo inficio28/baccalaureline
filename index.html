@@ -703,7 +703,7 @@ async function ouvrirScores() {
         // Charger les deux tables en parallèle
         const [dataSolo, dataMulti] = await Promise.all([
             dbSelect('partie_solo', { order:'created_at.desc' }).catch(() => []),
-            dbSelect('partie_multi', { order:'created_at.desc' }).catch(() => [])
+            dbSelect('scores_multi', { order:'created_at.desc' }).catch(() => [])
         ]);
 
         // Solo : une ligne = une partie
@@ -718,40 +718,17 @@ async function ouvrirScores() {
             }))
             .sort((a,b) => b.score - a.score);
 
-        // Multi : regrouper par partie (nom_partie + date proche) et calculer scores
-        // On prend toutes les lignes avec un vrai score de jeu (statut != attente)
-        const multiJeux = (dataMulti || []).filter(r =>
-            r.pseudo && r.score != null && r.statut !== 'attente'
-        );
-
-        // Regrouper par session : même nom_partie, créé dans la même heure
-        const sessions = {};
-        multiJeux.forEach(r => {
-            const heure = new Date(r.created_at);
-            heure.setMinutes(0,0,0);
-            const key = r.nom_partie + '|' + heure.toISOString();
-            if(!sessions[key]) sessions[key] = { nom: r.nom_partie, date: r.created_at, joueurs: [] };
-            // Éviter les doublons de pseudo dans la même session
-            if(!sessions[key].joueurs.find(j => j.pseudo === r.pseudo)) {
-                sessions[key].joueurs.push({ pseudo: r.pseudo, score: r.score });
-            }
-        });
-
-        // Aplatir en lignes de classement
-        const lignesMulti = [];
-        Object.values(sessions).forEach(sess => {
-            const tries = [...sess.joueurs].sort((a,b) => b.score - a.score);
-            tries.forEach((j, idx) => {
-                lignesMulti.push({
-                    pseudo: j.pseudo,
-                    score: j.score,
-                    rang: idx + 1,
-                    totalJoueurs: tries.length,
-                    date: sess.date,
-                    label: sess.nom
-                });
-            });
-        });
+        // Multi : les lignes viennent directement de scores_multi avec rang et total_joueurs
+        const lignesMulti = (dataMulti || [])
+            .filter(r => r.pseudo && r.score != null)
+            .map(r => ({
+                pseudo: r.pseudo,
+                score: r.score,
+                rang: r.rang || 1,
+                totalJoueurs: r.total_joueurs || 1,
+                date: r.created_at,
+                label: r.nom_partie || 'Multi'
+            }));
         lignesMulti.sort((a,b) => b.score - a.score);
         scoresData.multi = lignesMulti;
 
@@ -1203,14 +1180,6 @@ async function stopPartie(estInitiateur) {
     if(estInitiateur && channel) {
         try { await channel.send({ type:'broadcast', event:'stop', payload:{ stoppeur:pseudo } }); } catch(e){}
     }
-    try {
-        await dbInsert('partie_multi', {
-            pseudo, score, nom_partie:room,
-            mot_1:mots[0]||"", mot_2:mots[1]||"", mot_3:mots[2]||"",
-            mot_4:mots[3]||"", mot_5:mots[4]||"", mot_6:mots[5]||"",
-            mot_7:mots[6]||"", mot_8:mots[7]||""
-        });
-    } catch(e){}
     if(channel) {
         try { await channel.send({ type:'broadcast', event:'mots', payload:monResultat }); } catch(e){}
     }
@@ -1628,6 +1597,20 @@ function appliquerScoresFinaux(resultatsAjustes, motsCancelesArr) {
         if(scoresCumules[r.pseudo] == null) scoresCumules[r.pseudo] = 0;
         scoresCumules[r.pseudo] += r.score;
     });
+
+    // Sauvegarder les scores finaux dans scores_multi (un seul joueur insère pour éviter les doublons)
+    if(mode === 'host') {
+        const tries = [...resultatsAjustes].sort((a,b) => b.score - a.score);
+        tries.forEach((r, idx) => {
+            dbInsert('scores_multi', {
+                nom_partie: room,
+                pseudo: r.pseudo,
+                score: r.score,
+                rang: idx + 1,
+                total_joueurs: tries.length
+            }).catch(() => {});
+        });
+    }
 
     document.getElementById('contest-banner').classList.add('hidden');
     document.getElementById('contest-actions').classList.add('hidden');
