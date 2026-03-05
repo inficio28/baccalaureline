@@ -647,47 +647,9 @@ async function chargerLobby() {
         const seen = new Map();
         data.forEach(d => { if(!seen.has(d.nom_partie)) seen.set(d.nom_partie, d); });
 
-        // Vérifier l'activité de chaque salle via la présence Realtime
-        list.innerHTML = "<p style='padding:12px'>🔎 Vérification des salles actives...</p>";
-        const sallesActives = [];
-
-        await Promise.all([...seen.entries()].map(([nom, row]) => {
-            return new Promise(resolve => {
-                let resolved = false;
-                // 'check-' pour ne pas interférer avec le canal de jeu de l'hôte
-                const ch = _supabase.channel('check-' + nom, { config:{ presence:{ key:'_check' } } });
-                let presenceDetectee = false;
-                const timeout = setTimeout(async () => {
-                    if(resolved) return;
-                    resolved = true;
-                    _supabase.removeChannel(ch);
-                    if(presenceDetectee) {
-                        // Sync reçu mais 0 joueur → salle vraiment vide
-                        try { await dbDelete('partie_multi', { nom_partie:'eq.'+nom }); } catch(e){}
-                    } else {
-                        // Pas de réponse Realtime → on garde la salle par précaution
-                        sallesActives.push(row);
-                    }
-                    resolve(null);
-                }, 5000);
-
-                ch.on('presence', { event:'sync' }, () => {
-                    if(resolved) return;
-                    presenceDetectee = true;
-                    const state = ch.presenceState();
-                    const nbPresents = Object.keys(state).filter(k => k !== '_check').length;
-                    if(nbPresents > 0) {
-                        sallesActives.push(row);
-                        clearTimeout(timeout);
-                        resolved = true;
-                        _supabase.removeChannel(ch);
-                        resolve(null);
-                    }
-                    // nbPresents === 0 → on attend le timeout avant de supprimer
-                });
-                ch.subscribe();
-            });
-        }));
+        // Afficher toutes les salles en attente directement
+        // (la vérification Realtime via canal séparé est peu fiable car l'hôte est sur room-, pas check-)
+        const sallesActives = [...seen.values()];
 
         list.innerHTML = "";
         if(!sallesActives.length) {
@@ -982,7 +944,18 @@ function ouvrirChannelHote() {
         afficherJoueursHote();
     });
     channel.subscribe(async (status) => {
-        if(status === 'SUBSCRIBED') await channel.track({ pseudo, isHost:true });
+        if(status === 'SUBSCRIBED') {
+            await channel.track({ pseudo, isHost:true });
+            // Lire l'état APRÈS track pour voir tous les présents
+            setTimeout(() => {
+                const state = channel.presenceState();
+                Object.values(state).flat().forEach(p => {
+                    if(p.pseudo && !joueurs.find(j => j.pseudo === p.pseudo))
+                        joueurs.push({ pseudo:p.pseudo, isHost:p.isHost||false });
+                });
+                afficherJoueursHote();
+            }, 500);
+        }
     });
 }
 
@@ -1067,6 +1040,15 @@ function ouvrirChannelGuest() {
     channel.subscribe(async (status) => {
         if(status === 'SUBSCRIBED') {
             await channel.track({ pseudo, isHost:false });
+            // Lire l'état APRÈS track pour voir tous les présents (hôte inclus)
+            setTimeout(() => {
+                const state = channel.presenceState();
+                Object.values(state).flat().forEach(p => {
+                    if(p.pseudo && !joueurs.find(j => j.pseudo === p.pseudo))
+                        joueurs.push({ pseudo:p.pseudo, isHost:p.isHost||false });
+                });
+                afficherJoueursGuest();
+            }, 500);
         } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             showError('guest-waiting', 'Erreur Realtime (' + status + ').');
         }
