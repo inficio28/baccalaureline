@@ -654,7 +654,7 @@ async function chargerLobby() {
         await Promise.all([...seen.entries()].map(([nom, row]) => {
             return new Promise(resolve => {
                 let resolved = false;
-                const ch = // 'check-' pour ne pas interférer avec le canal de jeu de l'hôte
+                // 'check-' pour ne pas interférer avec le canal de jeu de l'hôte
                 const ch = _supabase.channel('check-' + nom, { config:{ presence:{ key:'_check' } } });
                 let presenceDetectee = false;
                 const timeout = setTimeout(async () => {
