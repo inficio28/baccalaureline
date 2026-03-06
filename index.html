@@ -1019,7 +1019,22 @@ function afficherJoueursHote() {
 }
 
 // ── Channel guest ─────────────────────────────────────────────────────────────
-function rejoindreSalle(nom, hostPseudo) {
+async function rejoindreSalle(nom, hostPseudo) {
+    // Vérifier que l'hôte est bien présent en temps réel avant de rejoindre
+    const btn = document.querySelector(`button[onclick="rejoindreSalle('${nom}','${hostPseudo}')"]`);
+    if(btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner" style="border-top-color:#2ecc71"></span> Vérification...'; }
+
+    const actif = await verifierSalleActive(nom);
+    if(!actif) {
+        // Supprimer la salle fantôme de la base
+        try { await dbDelete('partie_multi', { nom_partie:'eq.'+nom }); } catch(e){}
+        if(btn) { btn.disabled = false; btn.innerHTML = 'Rejoindre'; }
+        // Rafraîchir la liste
+        showError('lobby', 'Cette salle n\'est plus disponible, elle a été supprimée.');
+        await chargerLobby();
+        return;
+    }
+
     room = nom; mode = "guest";
     document.getElementById('current-room-name').innerText = nom;
     document.getElementById('room-indicator').classList.remove('hidden');
@@ -1027,6 +1042,38 @@ function rejoindreSalle(nom, hostPseudo) {
     afficherJoueursGuest();
     show('guest-waiting');
     ouvrirChannelGuest();
+}
+
+async function verifierSalleActive(nom) {
+    return new Promise((resolve) => {
+        // Ouvrir un channel temporaire et attendre 3s pour voir si l'hôte est présent
+        const tempChannel = _supabase.channel('room-' + nom, {
+            config: { presence:{ key: pseudo + '-check' } }
+        });
+        let resolved = false;
+        const timeout = setTimeout(() => {
+            if(!resolved) {
+                resolved = true;
+                _supabase.removeChannel(tempChannel);
+                resolve(false); // personne détecté → salle fantôme
+            }
+        }, 3000);
+
+        tempChannel.on('presence', { event:'sync' }, () => {
+            if(resolved) return;
+            const state = tempChannel.presenceState();
+            const presences = Object.values(state).flat();
+            const hotePresent = presences.some(p => p.isHost === true);
+            if(hotePresent) {
+                resolved = true;
+                clearTimeout(timeout);
+                _supabase.removeChannel(tempChannel);
+                resolve(true);
+            }
+        });
+
+        tempChannel.subscribe();
+    });
 }
 
 function ouvrirChannelGuest() {
@@ -1078,8 +1125,15 @@ function ouvrirChannelGuest() {
         afficherJoueursGuest();
     });
     channel.on('presence', { event:'leave' }, ({ leftPresences }) => {
+        const hoteParti = leftPresences.some(p => p.isHost === true);
         leftPresences.forEach(p => { joueurs = joueurs.filter(j => j.pseudo !== p.pseudo); });
         afficherJoueursGuest();
+        // Si l'hôte a quitté et que la partie n'est pas en cours → renvoyer au lobby avec message
+        if(hoteParti && !partieTerminee) {
+            if(channel) { _supabase.removeChannel(channel); channel = null; }
+            alert("⚠️ L'hôte a quitté la salle. La partie est annulée.");
+            retourAccueil();
+        }
     });
     channel.subscribe(async (status) => {
         if(status === 'SUBSCRIBED') {
@@ -1120,7 +1174,7 @@ async function lancerTopDepart() {
 
 // ── Annuler / Quitter ─────────────────────────────────────────────────────────
 async function annulerSalle() {
-    try { await dbDelete('partie_multi', { nom_partie:'eq.'+room, pseudo:'eq.'+pseudo }); } catch(e){}
+    try { await dbDelete('partie_multi', { nom_partie:'eq.'+room }); } catch(e){}
     if(channel) { _supabase.removeChannel(channel); channel = null; }
     retourAccueil();
 }
@@ -1128,6 +1182,25 @@ function quitterSalle() {
     if(channel) { _supabase.removeChannel(channel); channel = null; }
     retourAccueil();
 }
+
+// ── Suppression salle si l'hôte ferme l'onglet/navigue ailleurs ──────────────
+window.addEventListener('beforeunload', () => {
+    if(mode === 'host' && room) {
+        // sendBeacon est le seul moyen fiable d'envoyer une requête avant fermeture
+        // On passe par une requête Supabase REST directe via sendBeacon
+        const url = `${SUPABASE_URL}/rest/v1/partie_multi?nom_partie=eq.${encodeURIComponent(room)}`;
+        navigator.sendBeacon(url + '&apikey=' + SUPABASE_KEY,
+            new Blob([JSON.stringify({})], { type:'application/json' }));
+        // Fallback synchrone si sendBeacon ne supporte pas DELETE
+        try {
+            const xhr = new XMLHttpRequest();
+            xhr.open('DELETE', url, false); // false = synchrone
+            xhr.setRequestHeader('apikey', SUPABASE_KEY);
+            xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_KEY);
+            xhr.send();
+        } catch(e) {}
+    }
+});
 
 function tirerLettre() {
     const alphabet = "ABCDEFGHIJKLMNOPRST";
