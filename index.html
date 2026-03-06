@@ -536,6 +536,7 @@ function motValide(mot, lettre) {
 // ── État global ───────────────────────────────────────────────────────────────
 let mode = "", room = "", channel = null;
 let cats = [], letter = "", timerInterval, timeLeft = 0;
+let lettresJouees = new Set(); // lettres déjà utilisées dans la partie en cours
 let dureeMinutes = 3;
 let pseudo = "", joueurs = [];
 let resultatsJoueurs = {};
@@ -897,6 +898,7 @@ async function validerSetup() {
         soloGrilles = 0;
         soloScoreTotal = 0;
         soloVies = 5;
+        lettresJouees = new Set();
         letter = tirerLettre();
         demarrerJeu(); return;
     }
@@ -1038,6 +1040,7 @@ function ouvrirChannelGuest() {
         nbJoueursPartie = payload.nbJoueurs || 2;
         dureeMinutes = payload.duree || 3;
         dicoActif = payload.dico || false;
+        lettresJouees.add(letter); // synchroniser avec l'hôte
         demarrerJeu();
     });
     channel.on('broadcast', { event:'stop' }, () => {
@@ -1101,7 +1104,9 @@ function afficherJoueursGuest() {
 // ── Lancer ────────────────────────────────────────────────────────────────────
 async function lancerTopDepart() {
     if(window._hostPresenceInterval) { clearInterval(window._hostPresenceInterval); window._hostPresenceInterval = null; }
-    letter = "ABCDEFGHIJKLMNOPRST"[Math.floor(Math.random()*19)];
+    // Réinitialiser les lettres jouées seulement à la première manche
+    if(mancheNum === 1) lettresJouees = new Set();
+    letter = tirerLettre();
     nbJoueursPartie = joueurs.length;
     resultatsJoueurs = {};
     partieTerminee = false;
@@ -1125,7 +1130,13 @@ function quitterSalle() {
 }
 
 function tirerLettre() {
-    return "ABCDEFGHIJKLMNOPRST"[Math.floor(Math.random()*19)];
+    const alphabet = "ABCDEFGHIJKLMNOPRST";
+    const disponibles = alphabet.split('').filter(l => !lettresJouees.has(l));
+    // Si toutes les lettres ont été jouées, on réinitialise (partie très longue)
+    if(!disponibles.length) { lettresJouees.clear(); return alphabet[Math.floor(Math.random()*alphabet.length)]; }
+    const l = disponibles[Math.floor(Math.random()*disponibles.length)];
+    lettresJouees.add(l);
+    return l;
 }
 
 // ── Jeu ───────────────────────────────────────────────────────────────────────
@@ -1338,6 +1349,7 @@ function rejouerSolo() {
     soloGrilles = 0;
     soloScoreTotal = 0;
     soloVies = 5;
+    lettresJouees = new Set();
     if(soloModeJeu === 'blitz') dureeMinutes = 3;
     else if(soloModeJeu === 'sprint') dureeMinutes = 5;
     else dureeMinutes = 0;
@@ -1477,19 +1489,31 @@ async function verifierMotDicoLink(mot) {
 }
 
 async function verifierMotsAvecIA(mots_cats) {
-    // mots_cats = [{mot, categorie, lettre, key, dicoOk}, ...]
     if(!mots_cats.length) return {};
-    const prompt = `Tu es un arbitre strict du jeu "Le Petit Bac" en français.
-Pour chaque entrée, réponds true (valide) ou false (invalide) selon ces règles STRICTES :
-1. Le mot doit être un vrai mot français qui existe réellement (pas un mot inventé, pas du charabia, pas une suite de lettres sans sens).
-2. Le mot doit correspondre exactement à la catégorie demandée.
+
+    // Séparer les mots selon si DicoLink a pu les vérifier ou non
+    const dicoOk    = mots_cats.filter(m => m.dicoOk === true);   // dico confirme existence
+    const dicoNull  = mots_cats.filter(m => m.dicoOk === null);   // dico indisponible
+    const prompt = `Tu es un arbitre ULTRA-STRICT du jeu "Le Petit Bac" en français.
+RÈGLES ABSOLUES — applique-les sans exception :
+1. Si le mot ne ressemble pas à un vrai mot français (suite de lettres sans sens, charabia, mot inventé, nom propre inexistant) → OBLIGATOIREMENT false.
+2. Le mot doit correspondre EXACTEMENT à la catégorie demandée.
 3. Le mot doit commencer par la lettre indiquée.
-Si le moindre doute sur l'existence réelle du mot → false.
+4. Pour les mots marqués [EXISTENCE NON VÉRIFIÉE] : tu dois toi-même juger si ce mot existe vraiment en français. Si tu n'es pas certain à 100% → false.
+
+Exemples de réponses attendues :
+- "Tigre" / Animal / T → true
+- "Tonuhghff" / Animal / T → false (charabia)
+- "Tlklkl" / Prénom / T → false (inventé)
+- "Tahiti" / Pays / T → true
+- "Truc" / Ville / T → false (pas une ville)
 
 Réponds UNIQUEMENT avec un JSON {"key": true/false}, sans texte ni balises.
 
 Entrées :
-${mots_cats.map(m => `- key:"${m.key}" mot:"${m.mot}" catégorie:"${m.categorie}" lettre:"${m.lettre}"${m.dicoOk === null ? ' (dictionnaire indisponible, vérifie toi-même l\'existence du mot)' : ''}`).join('\n')}`;
+${dicoOk.map(m => `- key:"${m.key}" mot:"${m.mot}" catégorie:"${m.categorie}" lettre:"${m.lettre}" [EXISTENCE CONFIRMÉE PAR DICTIONNAIRE]`).join('\n')}
+${dicoNull.map(m => `- key:"${m.key}" mot:"${m.mot}" catégorie:"${m.categorie}" lettre:"${m.lettre}" [EXISTENCE NON VÉRIFIÉE — sois très strict]`).join('\n')}`.trim();
+
     try {
         const resp = await fetch("https://api.anthropic.com/v1/messages", {
             method:"POST",
