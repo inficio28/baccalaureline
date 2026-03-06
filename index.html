@@ -17,7 +17,7 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1403075523254269" crossorigin="anonymous"></script>
     <style>
         :root { --primary: #3498db; --success: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; }
-        body { font-family: 'Segoe UI', sans-serif; background: #fdfdfd; margin: 0; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        body { font-family: 'Segoe UI', sans-serif; background: #fdfdfd; margin: 0; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; padding-bottom: 36px; box-sizing: border-box; }
         .bg-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
         .floating-letter { position: absolute; font-weight: 900; color: rgba(52,152,219,0.15); animation: float infinite ease-in-out; }
         @keyframes float { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-20px) rotate(10deg)} }
@@ -211,6 +211,21 @@
         .btn-dico-non { background:#fdecea; color:#e74c3c; border:1.5px solid #e74c3c; }
         .btn-dico.sel { transform:scale(1.08); opacity:1; }
         .btn-dico:not(.sel) { opacity:0.45; }
+
+        /* ── FOOTER ── */
+        .site-footer { position:fixed; bottom:0; left:0; width:100%; background:rgba(255,255,255,0.92); backdrop-filter:blur(4px); border-top:1px solid #eee; text-align:center; padding:8px 0; z-index:100; font-size:0.75rem; color:#aaa; }
+        .site-footer a { color:#3498db; text-decoration:none; margin:0 8px; }
+        .site-footer a:hover { text-decoration:underline; }
+
+        /* ── PAGES LÉGALES ── */
+        .legal-page { text-align:left; padding:4px 0; }
+        .legal-page h2 { font-size:1.3rem; color:var(--dark); margin-bottom:8px; }
+        .legal-page h3 { font-size:1rem; color:var(--dark); margin:16px 0 6px 0; }
+        .legal-page p  { font-size:0.88rem; color:#555; line-height:1.6; margin:0 0 8px 0; }
+        .legal-page ul { font-size:0.88rem; color:#555; line-height:1.7; padding-left:20px; margin:0 0 8px 0; }
+        .legal-page a  { color:var(--primary); }
+        .contact-form input, .contact-form textarea { padding:12px; border:2px solid #eee; border-radius:12px; width:100%; font-size:0.95rem; box-sizing:border-box; margin-bottom:10px; font-family:inherit; }
+        .contact-form textarea { resize:vertical; min-height:100px; }
     </style>
 </head>
 <body>
@@ -421,10 +436,139 @@
             <button onclick="location.reload()" class="btn btn-grey">🚪 QUITTER</button>
         </div>
     </div>
+
+    <!-- PAGE À PROPOS -->
+    <div id="page-about" class="hidden">
+        <div class="legal-page">
+            <h2>📖 À propos de Baccalaureline</h2>
+            <p><strong>Baccalaureline</strong> est un jeu de lettres en ligne inspiré du célèbre jeu de société "Le Petit Bac". Il est entièrement gratuit et jouable sans inscription.</p>
+            <h3>🎯 Comment jouer ?</h3>
+            <p>Une lettre est tirée au hasard. Chaque joueur doit remplir le plus vite possible une grille de mots commençant par cette lettre, pour chaque catégorie (Prénom, Pays, Animal, Objet, etc.). Le premier à crier "STOP !" met fin au tour. Les joueurs obtiennent des points selon l'originalité de leurs réponses.</p>
+            <h3>🎮 Modes de jeu</h3>
+            <ul>
+                <li><strong>Solo Blitz (3 min)</strong> — Remplis un maximum de grilles en 3 minutes.</li>
+                <li><strong>Solo Sprint (5 min)</strong> — Enchaîne les grilles sur 5 minutes chrono.</li>
+                <li><strong>Solo Survie</strong> — 5 vies, chaque mot invalide en coûte une.</li>
+                <li><strong>Multijoueur</strong> — Crée ou rejoins une salle pour jouer avec tes amis en temps réel.</li>
+            </ul>
+            <h3>🛠 Technologies</h3>
+            <p>Baccalaureline est une application web progressive (PWA) développée avec HTML, CSS et JavaScript. Le multijoueur est géré via <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a> (base de données et temps réel).</p>
+            <h3>📬 Contact</h3>
+            <p>Pour toute question ou suggestion, utilise la <a href="#" onclick="ouvrirPage('page-contact')">page de contact</a>.</p>
+        </div>
+        <button class="btn btn-grey" onclick="fermerPage('page-about')" style="margin-top:10px">← RETOUR</button>
+    </div>
+
+    <!-- PAGE CONTACT -->
+    <div id="page-contact" class="hidden">
+        <div class="legal-page">
+            <h2>📬 Nous contacter</h2>
+            <p>Une question, un bug à signaler ou une suggestion ? Écris-nous directement par e-mail :</p>
+            <p style="text-align:center;margin:16px 0">
+                <a href="mailto:contact@baccalaureline.fr" style="font-size:1rem;font-weight:bold">📧 contact@baccalaureline.fr</a>
+            </p>
+            <p style="font-size:0.82rem;color:#aaa">Nous nous efforçons de répondre dans un délai de 48 h ouvrées.</p>
+            <h3>🐛 Signaler un bug</h3>
+            <p>Si tu rencontres un problème technique (partie qui ne se lance pas, score incorrect, etc.), merci d'indiquer dans ton e-mail :</p>
+            <ul>
+                <li>Le mode de jeu concerné (solo / multijoueur)</li>
+                <li>Le navigateur et l'appareil utilisés</li>
+                <li>Une description du problème rencontré</li>
+            </ul>
+        </div>
+        <button class="btn btn-grey" onclick="fermerPage('page-contact')" style="margin-top:10px">← RETOUR</button>
+    </div>
+
+    <!-- PAGE POLITIQUE DE CONFIDENTIALITÉ -->
+    <div id="page-privacy" class="hidden">
+        <div class="legal-page">
+            <h2>🔒 Politique de confidentialité</h2>
+            <p style="font-size:0.78rem;color:#aaa">Dernière mise à jour : mars 2025</p>
+
+            <h3>1. Responsable du traitement</h3>
+            <p>Baccalaureline est un site web géré à titre personnel. Pour toute question relative à vos données, vous pouvez nous contacter à l'adresse : <a href="mailto:contact@baccalaureline.fr">contact@baccalaureline.fr</a>.</p>
+
+            <h3>2. Données collectées</h3>
+            <p>Lors de l'utilisation du site, les données suivantes peuvent être collectées :</p>
+            <ul>
+                <li><strong>Pseudo</strong> — saisi librement par l'utilisateur, utilisé pour les scores et le multijoueur. Aucun vrai nom n'est requis.</li>
+                <li><strong>Scores de jeu</strong> — enregistrés dans notre base de données pour alimenter le tableau des scores.</li>
+                <li><strong>Données de connexion</strong> — adresse IP et données techniques collectées automatiquement par notre hébergeur (Netlify) à des fins de sécurité.</li>
+            </ul>
+
+            <h3>3. Finalité du traitement</h3>
+            <p>Les données sont utilisées uniquement pour :</p>
+            <ul>
+                <li>Faire fonctionner le jeu en multijoueur (salles, temps réel)</li>
+                <li>Afficher le tableau des scores</li>
+                <li>Améliorer l'expérience utilisateur</li>
+            </ul>
+
+            <h3>4. Cookies et publicité</h3>
+            <p>Ce site utilise <strong>Google AdSense</strong> pour afficher des publicités. Google peut utiliser des cookies pour personnaliser les annonces en fonction de votre navigation. Vous pouvez gérer vos préférences publicitaires via <a href="https://adssettings.google.com" target="_blank" rel="noopener">Google Ads Settings</a>.</p>
+            <p>Aucun autre cookie de traçage ou de profilage n'est utilisé par Baccalaureline.</p>
+
+            <h3>5. Hébergement et sous-traitants</h3>
+            <ul>
+                <li><strong>Netlify</strong> — hébergement du site (<a href="https://www.netlify.com/privacy/" target="_blank" rel="noopener">politique de confidentialité</a>)</li>
+                <li><strong>Supabase</strong> — base de données et temps réel (<a href="https://supabase.com/privacy" target="_blank" rel="noopener">politique de confidentialité</a>)</li>
+                <li><strong>Google AdSense</strong> — régie publicitaire (<a href="https://policies.google.com/privacy" target="_blank" rel="noopener">politique de confidentialité</a>)</li>
+            </ul>
+
+            <h3>6. Durée de conservation</h3>
+            <p>Les pseudos et scores sont conservés jusqu'à 12 mois, puis supprimés automatiquement.</p>
+
+            <h3>7. Vos droits (RGPD)</h3>
+            <p>Conformément au Règlement Général sur la Protection des Données (RGPD), vous disposez d'un droit d'accès, de rectification et de suppression de vos données. Pour exercer ces droits, contactez-nous à : <a href="mailto:contact@baccalaureline.fr">contact@baccalaureline.fr</a>.</p>
+
+            <h3>8. Mineurs</h3>
+            <p>Ce site est ouvert à tous publics. Aucune donnée personnelle identifiable n'est volontairement collectée auprès de mineurs.</p>
+        </div>
+        <button class="btn btn-grey" onclick="fermerPage('page-privacy')" style="margin-top:10px">← RETOUR</button>
+    </div>
+
 </div>
 </div>
 
+<!-- FOOTER -->
+<footer class="site-footer">
+    <a href="#" onclick="ouvrirPage('page-about')">À propos</a> ·
+    <a href="#" onclick="ouvrirPage('page-contact')">Contact</a> ·
+    <a href="#" onclick="ouvrirPage('page-privacy')">Politique de confidentialité</a>
+    <span style="margin-left:10px;color:#ddd">© 2025 Baccalaureline</span>
+</footer>
+
 <script>
+// ── PAGES LÉGALES ────────────────────────────────────────────────────────────
+const LEGAL_PAGES = ['page-about','page-contact','page-privacy'];
+let _pageOriginSection = null;
+
+function ouvrirPage(id) {
+    const sections = ['home','solo-mode-select','lobby','scores','setup',
+                      'host-waiting','guest-waiting','game','solo-dico-check',
+                      'waiting-results','result'];
+    _pageOriginSection = sections.find(s => {
+        const el = document.getElementById(s);
+        return el && !el.classList.contains('hidden');
+    }) || 'home';
+    sections.forEach(s => { const el = document.getElementById(s); if(el) el.classList.add('hidden'); });
+    LEGAL_PAGES.forEach(p => { const el = document.getElementById(p); if(el) el.classList.add('hidden'); });
+    const target = document.getElementById(id);
+    if(target) target.classList.remove('hidden');
+    return false;
+}
+
+function fermerPage(id) {
+    const el = document.getElementById(id);
+    if(el) el.classList.add('hidden');
+    const target = _pageOriginSection || 'home';
+    const el2 = document.getElementById(target);
+    if(el2) el2.classList.remove('hidden');
+    _pageOriginSection = null;
+    return false;
+}
+
+// ── SUPABASE ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://rntiiwtohwzsyzxnicxt.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJudGlpd3RvaHd6c3l6eG5pY3h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3ODM3MjgsImV4cCI6MjA4NTM1OTcyOH0.NV9KXoOnfnyKAqrZ4T_wc6g5D_Uh0p140UcsdBQ-ATs";
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
