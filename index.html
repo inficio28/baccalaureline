@@ -1387,7 +1387,7 @@ async function lancerVerifDicoSolo(mots, lettreCourante, callback) {
     // Claude
     document.getElementById('dico-loading-msg').innerText = '🤖 Vérification des catégories par IA...';
     const aPourClaude = dicoResults.filter(m => m.dicoOk !== false)
-        .map(m => ({ key: String(m.idx), mot: m.mot, categorie: m.cat, lettre: lettreCourante }));
+        .map(m => ({ key: String(m.idx), mot: m.mot, categorie: m.cat, lettre: lettreCourante, dicoOk: m.dicoOk }));
     const claudeResults = aPourClaude.length ? await verifierMotsAvecIA(aPourClaude) : {};
 
     // Construire les décisions initiales
@@ -1477,13 +1477,19 @@ async function verifierMotDicoLink(mot) {
 }
 
 async function verifierMotsAvecIA(mots_cats) {
-    // mots_cats = [{mot, categorie, lettre, key}, ...]
+    // mots_cats = [{mot, categorie, lettre, key, dicoOk}, ...]
     if(!mots_cats.length) return {};
-    const prompt = `Tu es un arbitre du jeu "Le Petit Bac". Pour chaque entrée ci-dessous, réponds uniquement par un JSON de la forme {"key": true/false} où true = valide, false = invalide.
-Critères : le mot doit commencer par la lettre indiquée ET correspondre à la catégorie.
+    const prompt = `Tu es un arbitre strict du jeu "Le Petit Bac" en français.
+Pour chaque entrée, réponds true (valide) ou false (invalide) selon ces règles STRICTES :
+1. Le mot doit être un vrai mot français qui existe réellement (pas un mot inventé, pas du charabia, pas une suite de lettres sans sens).
+2. Le mot doit correspondre exactement à la catégorie demandée.
+3. Le mot doit commencer par la lettre indiquée.
+Si le moindre doute sur l'existence réelle du mot → false.
+
+Réponds UNIQUEMENT avec un JSON {"key": true/false}, sans texte ni balises.
+
 Entrées :
-${mots_cats.map(m => `- key:"${m.key}" mot:"${m.mot}" catégorie:"${m.categorie}" lettre:"${m.lettre}"`).join('\n')}
-Réponds UNIQUEMENT avec le JSON, sans texte ni balises.`;
+${mots_cats.map(m => `- key:"${m.key}" mot:"${m.mot}" catégorie:"${m.categorie}" lettre:"${m.lettre}"${m.dicoOk === null ? ' (dictionnaire indisponible, vérifie toi-même l\'existence du mot)' : ''}`).join('\n')}`;
     try {
         const resp = await fetch("https://api.anthropic.com/v1/messages", {
             method:"POST",
@@ -1531,7 +1537,7 @@ async function verifierTousLesMots(resultats, categoriesList, lettreTiree) {
 
     // Mots à valider par Claude (ceux que le dico a acceptés ou était indisponible)
     const aPourClaude = dicoResults.filter(m => m.dicoOk !== false)
-        .map(m => ({ key: m.key, mot: m.mot, categorie: m.categorie, lettre: lettreTiree }));
+        .map(m => ({ key: m.key, mot: m.mot, categorie: m.categorie, lettre: lettreTiree, dicoOk: m.dicoOk }));
 
     banner.innerHTML = '🤖 <b>Vérification des catégories par IA...</b>';
 
