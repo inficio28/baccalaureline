@@ -16,8 +16,53 @@
     <!-- Google AdSense — remplace ca-pub-1403075523254269 par ton vrai identifiant éditeur -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1403075523254269" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="style.css">
+
+    <style>
+    /* ── BANDEAU COOKIES ── */
+    #cookie-banner {
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
+        background: #2c3e50; color: white;
+        padding: 16px 20px;
+        display: flex; flex-wrap: wrap;
+        align-items: center; justify-content: space-between;
+        gap: 12px;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+        font-size: 0.88rem; line-height: 1.5;
+    }
+    #cookie-banner.hidden { display: none; }
+    #cookie-banner p { margin: 0; flex: 1; min-width: 200px; }
+    #cookie-banner a { color: #3498db; text-decoration: underline; }
+    .cookie-btns { display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
+    .btn-cookie-accept {
+        background: #2ecc71; color: white; border: none;
+        padding: 10px 20px; border-radius: 8px; cursor: pointer;
+        font-weight: bold; font-size: 0.9rem;
+    }
+    .btn-cookie-refuse {
+        background: transparent; color: #bdc3c7;
+        border: 1px solid #bdc3c7;
+        padding: 10px 20px; border-radius: 8px; cursor: pointer;
+        font-size: 0.9rem;
+    }
+    .btn-cookie-accept:hover { background: #27ae60; }
+    .btn-cookie-refuse:hover { color: white; border-color: white; }
+    </style>
 </head>
 <body>
+
+<!-- ── BANDEAU COOKIES RGPD ── -->
+<div id="cookie-banner">
+    <p>
+        🍪 Ce site utilise des cookies pour améliorer votre expérience et afficher des publicités personnalisées via <strong>Google AdSense</strong>.
+        En cliquant sur "Accepter", vous consentez à l'utilisation de cookies publicitaires.
+        <a href="#" onclick="ouvrirPage('page-privacy');refuserCookies(false)">En savoir plus</a>
+    </p>
+    <div class="cookie-btns">
+        <button class="btn-cookie-refuse" onclick="refuserCookies(true)">Refuser</button>
+        <button class="btn-cookie-accept" onclick="accepterCookies()">✓ Accepter</button>
+    </div>
+</div>
+
 <div id="room-indicator" class="room-header hidden">PARTIE : <span id="current-room-name">...</span></div>
 <div class="bg-container" id="bg-letters"></div>
 
@@ -498,16 +543,42 @@ let scoresCumules = {};   // { pseudo: totalPoints }
 let mancheNum = 1;
 let dicoActif = false; // vérification dictionnaire activée par l'utilisateur
 
-// ── Initialisation AdSense (désactivé en mode PWA standalone) ────────────────
-const _isStandalone = window.matchMedia('(display-mode: standalone)').matches
-    || ('standalone' in navigator && navigator.standalone);
-if(!_isStandalone) {
+
+// ── COOKIES RGPD ─────────────────────────────────────────────────────────────
+function initCookieBanner() {
+    const consent = localStorage.getItem('cookie_consent');
+    if(!consent) {
+        document.getElementById('cookie-banner').classList.remove('hidden');
+    } else if(consent === 'accepted') {
+        chargerAdSense();
+    }
+}
+
+function accepterCookies() {
+    localStorage.setItem('cookie_consent', 'accepted');
+    document.getElementById('cookie-banner').classList.add('hidden');
+    chargerAdSense();
+}
+
+function refuserCookies(hide=true) {
+    localStorage.setItem('cookie_consent', 'refused');
+    if(hide) document.getElementById('cookie-banner').classList.add('hidden');
+    // Pas de pub si refus
+}
+
+function chargerAdSense() {
+    if(window._adSenseLoaded) return;
+    window._adSenseLoaded = true;
     try {
         document.querySelectorAll('ins.adsbygoogle').forEach(() => {
             (window.adsbygoogle = window.adsbygoogle || []).push({});
         });
     } catch(e) {}
 }
+
+document.addEventListener('DOMContentLoaded', initCookieBanner);
+
+
 
 // Fond animé
 const bg = document.getElementById('bg-letters');
