@@ -603,11 +603,12 @@ async function chargerLobby() {
     const limite3h = new Date(Date.now() - 3*60*60*1000).toISOString();
     const limite30min = new Date(Date.now() - 30*60*1000).toISOString();
     try {
-        // Supprimer les salles expirées
+        // Supprimer les salles expirées (terminées ou en attente depuis 3h)
         await dbDelete('partie_multi', { statut:'eq.attente',  created_at:'lt.'+limite3h });
         await dbDelete('partie_multi', { statut:'eq.terminee', created_at:'lt.'+limite3h });
-        // Supprimer les salles "en_cours" abandonnées depuis plus de 30 min
-        await dbDelete('partie_multi', { statut:'eq.en_cours', created_at:'lt.'+limite30min });
+        // Supprimer les salles "en_cours" abandonnées depuis plus de 4h
+        const limite4h = new Date(Date.now() - 4*60*60*1000).toISOString();
+        await dbDelete('partie_multi', { statut:'eq.en_cours', created_at:'lt.'+limite4h });
 
         const data = await dbSelect('partie_multi', {
             select:'nom_partie,pseudo,created_at', statut:'eq.attente',
@@ -802,10 +803,16 @@ async function nettoyerSallesOrphelines() {
         const nomsASupprimer = new Set();
 
         mesHostSalles.forEach(r => {
-            if(r.statut === 'attente' || r.statut === 'terminee') {
+            // Ne supprimer que les salles terminées
+            if(r.statut === 'terminee') {
                 nomsASupprimer.add(r.nom_partie);
             }
-            // Salle en cours depuis plus de 4h → considérée abandonnée
+            // Salle en attente depuis plus de 30 min → orpheline
+            if(r.statut === 'attente') {
+                const age = Date.now() - new Date(r.created_at).getTime();
+                if(age > 30 * 60 * 1000) nomsASupprimer.add(r.nom_partie);
+            }
+            // Salle en cours depuis plus de 4h → abandonnée
             if(r.statut === 'en_cours') {
                 const age = Date.now() - new Date(r.created_at).getTime();
                 if(age > 4 * 60 * 60 * 1000) nomsASupprimer.add(r.nom_partie);
@@ -953,19 +960,21 @@ function afficherJoueursHote() {
 
 // ── Channel guest ─────────────────────────────────────────────────────────────
 async function rejoindreSalle(nom, hostPseudo) {
-    // Vérifier que l'hôte est bien présent en temps réel avant de rejoindre
     const btn = document.querySelector(`button[onclick="rejoindreSalle('${nom}','${hostPseudo}')"]`);
-    if(btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner" style="border-top-color:#2ecc71"></span> Vérification...'; }
+    if(btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner" style="border-top-color:#2ecc71"></span> Connexion...'; }
 
-    const actif = await verifierSalleActive(nom);
-    if(!actif) {
-        // Supprimer la salle fantôme de la base
-        try { await dbDelete('partie_multi', { nom_partie:'eq.'+nom }); } catch(e){}
-        if(btn) { btn.disabled = false; btn.innerHTML = 'Rejoindre'; }
-        // Rafraîchir la liste
-        showError('lobby', 'Cette salle n\'est plus disponible, elle a été supprimée.');
-        await chargerLobby();
-        return;
+    try {
+        // Vérifier simplement que la salle existe encore en base
+        const rows = await dbSelect('partie_multi', { nom_partie:'eq.'+nom, statut:'eq.attente' });
+        if(!rows || rows.length === 0) {
+            if(btn) { btn.disabled = false; btn.innerHTML = 'Rejoindre'; }
+            showError('lobby', 'Cette salle n\'est plus disponible.');
+            await chargerLobby();
+            return;
+        }
+    } catch(e) {
+        // En cas d'erreur réseau, on laisse quand même rejoindre
+        console.warn('Vérification salle échouée, tentative de rejoindre quand même', e);
     }
 
     room = nom; mode = "guest";
@@ -975,38 +984,6 @@ async function rejoindreSalle(nom, hostPseudo) {
     afficherJoueursGuest();
     show('guest-waiting');
     ouvrirChannelGuest();
-}
-
-async function verifierSalleActive(nom) {
-    return new Promise((resolve) => {
-        // Ouvrir un channel temporaire et attendre 3s pour voir si l'hôte est présent
-        const tempChannel = _supabase.channel('room-' + nom, {
-            config: { presence:{ key: pseudo + '-check' } }
-        });
-        let resolved = false;
-        const timeout = setTimeout(() => {
-            if(!resolved) {
-                resolved = true;
-                _supabase.removeChannel(tempChannel);
-                resolve(false); // personne détecté → salle fantôme
-            }
-        }, 6000);
-
-        tempChannel.on('presence', { event:'sync' }, () => {
-            if(resolved) return;
-            const state = tempChannel.presenceState();
-            const presences = Object.values(state).flat();
-            const hotePresent = presences.some(p => p.isHost === true);
-            if(hotePresent) {
-                resolved = true;
-                clearTimeout(timeout);
-                _supabase.removeChannel(tempChannel);
-                resolve(true);
-            }
-        });
-
-        tempChannel.subscribe();
-    });
 }
 
 function ouvrirChannelGuest() {
