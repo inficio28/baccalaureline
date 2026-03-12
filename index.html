@@ -563,13 +563,19 @@ function accepterCookies() {
 function refuserCookies(hide=true) {
     localStorage.setItem('cookie_consent', 'refused');
     if(hide) document.getElementById('cookie-banner').classList.add('hidden');
-    // Pas de pub si refus
+    // Pubs non personnalisées (contextuelles uniquement)
+    chargerAdSense(false);
 }
 
-function chargerAdSense() {
+function chargerAdSense(personnalise=true) {
     if(window._adSenseLoaded) return;
     window._adSenseLoaded = true;
     try {
+        // Si refus : pubs non personnalisées
+        if(!personnalise) {
+            (window.adsbygoogle = window.adsbygoogle || []);
+            window.adsbygoogle.requestNonPersonalizedAds = 1;
+        }
         document.querySelectorAll('ins.adsbygoogle').forEach(() => {
             (window.adsbygoogle = window.adsbygoogle || []).push({});
         });
